@@ -63,4 +63,13 @@ def tableToUUID(table: str, token: str) -> str:
 
     return str(table_entry.id)
 
+
+def whereObjectParser(model, where: dict):
+    """
+     Parse a where object into a SQLAlchemy filter.
+    """
+    filters = []
+    for field, conditon in where.items():
+        
+    
     
