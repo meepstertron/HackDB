@@ -2,7 +2,7 @@ import Sidebar from "./sidebar";
 
 function RootLayout({ children }: React.PropsWithChildren) {
     return (
-        <div className="h-screen w-screen flex bg-gray-100 text-gray-900">
+        <div className="h-screen w-screen flex text-gray-900">
             <Sidebar />
             <div className="flex flex-col flex-1">
                 

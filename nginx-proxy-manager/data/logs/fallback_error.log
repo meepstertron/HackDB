@@ -1,0 +1,2 @@
+2025/05/05 18:00:34 [error] 187#187: *95 open() "/var/www/html/shelly" failed (2: No such file or directory), client: 172.20.0.1, server: localhost-nginx-proxy-manager, request: "GET /shelly HTTP/1.1", host: "192.168.1.103"
+2025/05/05 18:16:17 [error] 188#188: *161 open() "/var/www/html/shelly" failed (2: No such file or directory), client: 172.20.0.1, server: localhost-nginx-proxy-manager, request: "GET /shelly HTTP/1.1", host: "192.168.1.103"
