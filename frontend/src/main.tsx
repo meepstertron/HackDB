@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import RootLayout from './components/layout.tsx'
 import { DBPage } from './pages/databases.tsx'
+import DBInfo from './pages/databaseinfo.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -21,8 +22,17 @@ createRoot(document.getElementById('root')!).render(
             <DBPage />
           </RootLayout>
         }/>
+        <Route path='/databases/create' element={
+          <RootLayout>
+            <p>Create your awesome sauce db</p>
+          </RootLayout>
+        }/>
+        <Route path='/databases/:id' element={
+          <RootLayout>
+            <DBInfo />
+          </RootLayout>
+        }/>
       </Routes>
-
     </BrowserRouter>
   </StrictMode>,
 )
