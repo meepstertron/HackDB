@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from app.models import Item
+
 from app import db, rq
 import logging
 from helpers import checkToken, checkTable

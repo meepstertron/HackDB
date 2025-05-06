@@ -4,3 +4,5 @@ psycopg2-binary
 gunicorn 
 redis
 rq
+slack
+slack_sdk

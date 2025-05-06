@@ -1,2 +1,24 @@
 2025/05/05 18:00:34 [error] 187#187: *95 open() "/var/www/html/shelly" failed (2: No such file or directory), client: 172.20.0.1, server: localhost-nginx-proxy-manager, request: "GET /shelly HTTP/1.1", host: "192.168.1.103"
 2025/05/05 18:16:17 [error] 188#188: *161 open() "/var/www/html/shelly" failed (2: No such file or directory), client: 172.20.0.1, server: localhost-nginx-proxy-manager, request: "GET /shelly HTTP/1.1", host: "192.168.1.103"
+2025/05/05 20:39:47 [error] 281#281: wrong ident 7861 in DNS response for frontend, expect 20674
+2025/05/05 20:39:47 [error] 281#281: wrong ident 50108 in DNS response for frontend, expect 6038
+2025/05/05 20:39:47 [error] 281#281: wrong ident 13499 in DNS response for frontend, expect 6038
+2025/05/05 20:39:47 [error] 281#281: wrong ident 31489 in DNS response for frontend, expect 20674
+2025/05/05 20:39:48 [error] 281#281: wrong ident 37722 in DNS response for frontend, expect 37525
+2025/05/05 20:39:48 [error] 281#281: wrong ident 29189 in DNS response for frontend, expect 49848
+2025/05/05 20:39:48 [error] 281#281: wrong ident 50832 in DNS response for frontend, expect 4802
+2025/05/05 20:39:48 [error] 281#281: wrong ident 25028 in DNS response for frontend, expect 6770
+2025/05/05 20:39:48 [error] 281#281: wrong ident 47951 in DNS response for frontend, expect 6770
+2025/05/05 20:39:48 [error] 281#281: wrong ident 48422 in DNS response for frontend, expect 4802
+2025/05/05 20:39:49 [error] 281#281: wrong ident 29209 in DNS response for frontend, expect 6770
+2025/05/05 20:39:49 [error] 281#281: wrong ident 31070 in DNS response for frontend, expect 4802
+2025/05/05 20:39:50 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:50 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:50 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:50 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend
+2025/05/05 20:39:51 [error] 281#281: unexpected DNS response for frontend

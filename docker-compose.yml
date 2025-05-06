@@ -24,6 +24,8 @@ services:
         condition: service_started
     networks:
       - app-network
+    env_file:
+      - ./.env
 
   db:
     image: postgres:15-alpine
