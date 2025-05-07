@@ -6,3 +6,4 @@ redis
 rq
 slack
 slack_sdk
+jwt

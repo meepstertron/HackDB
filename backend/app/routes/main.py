@@ -1,9 +1,11 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response, redirect, url_for
 from app import db, rq
 import logging
 import os
 from uuid import uuid4
 from slack_sdk import WebClient
+from ..models import Users
+import jwt
 
 client_id = os.environ["SLACK_CLIENT_ID"]
 client_secret = os.environ["SLACK_CLIENT_SECRET"]
@@ -58,5 +60,25 @@ def post_install():
       print(access_token)
   else:
       return "Error: Auth Failed"
-
-  return "Auth complete"
+  
+  user = Users.query.filter_by(slack_user_id=response["authed_user"]["id"]).first()
+  if user is None:
+      user = Users(slack_user_id=response["authed_user"]["id"],
+                   slack_access_token=access_token,
+                   username=response["authed_user"]["name"],
+                   email=response["authed_user"]["email"])
+      db.session.add(user)
+      db.session.commit()
+      response = make_response()
+      jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
+      response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
+      response.redirect("http://localhost:5174/home")
+      return response
+  else:
+        user.slack_access_token = access_token
+        db.session.commit()
+        response = make_response()
+        jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
+        response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
+        response.redirect("http://localhost:5174/home")
+        return response

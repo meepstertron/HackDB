@@ -26,4 +26,5 @@ EXPOSE 5000
 ENV FLASK_RUN_HOST=0.0.0.0
 
 
-CMD ["./wait-for-db.sh", "db", "gunicorn", "--capture-output", "--workers", "4", "--bind", "0.0.0.0:5000", "run:app"]
+#CMD ["./wait-for-db.sh", "db", "gunicorn", "--capture-output", "--workers", "4", "--bind", "0.0.0.0:5000", "run:app"]
+CMD ["gunicorn", "--capture-output", "--workers", "4", "--bind", "0.0.0.0:5000", "run:app"]
