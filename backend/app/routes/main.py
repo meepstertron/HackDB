@@ -1,6 +1,5 @@
-from flask import Blueprint, jsonify, request, make_response, redirect, url_for
+from flask import Blueprint, jsonify, request, make_response, redirect
 from app import db, rq
-import logging
 import os
 from uuid import uuid4
 from slack_sdk import WebClient
@@ -34,51 +33,79 @@ def pre_install():
 
 @main.route("/finish_auth", methods=["GET", "POST"])
 def post_install():
-  # Retrieve the auth code and state from the request params
-  auth_code = request.args["code"]
-  received_state = request.args["state"]
+    auth_code = request.args["code"]
+    auth_code = request.args["code"]
+    received_state = request.args["state"]
 
-  # Token is not required to call the oauth.v2.access method
-  client = WebClient()
-  
-  # verify state received in params matches state we originally sent in auth request
-  #if received_state == state:
-  if 1 == 1:
-    # Exchange the authorization code for an access token with Slack
-    response = client.oauth_v2_access(
-        client_id=client_id,
-        client_secret=client_secret,
-        code=auth_code
-    )
-  else:
-    return "Invalid State"
+    client = WebClient()
 
-  print(response["access_token"])
-  if response.get("ok"):
-      access_token = response["authed_user"]["access_token"]
+    if True:
+        response = client.oauth_v2_access(
+            client_id=client_id,
+            client_secret=client_secret,
+            code=auth_code
+        )
+    else:
+        return "Invalid State"
 
-      print(access_token)
-  else:
-      return "Error: Auth Failed"
-  
-  user = Users.query.filter_by(slack_user_id=response["authed_user"]["id"]).first()
-  if user is None:
-      user = Users(slack_user_id=response["authed_user"]["id"],
-                   slack_access_token=access_token,
-                   username=response["authed_user"]["name"],
-                   email=response["authed_user"]["email"])
-      db.session.add(user)
-      db.session.commit()
-      response = make_response()
-      jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
-      response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
-      response.redirect("http://localhost:5174/home")
-      return response
-  else:
-        user.slack_access_token = access_token
-        db.session.commit()
-        response = make_response()
-        jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
-        response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
-        response.redirect("http://localhost:5174/home")
-        return response
+    if response.get("ok"):
+        access_token = response["authed_user"]["access_token"]
+
+        
+        client = WebClient(token=access_token)
+        identity_response = client.api_call("users.identity")
+        if identity_response.get("ok"):
+            user_info = identity_response["user"]
+            slack_user_id = user_info["id"]
+            username = user_info.get("name", "N/A")
+            email = user_info.get("email", None)
+
+            
+            user = db.session.query(Users).filter_by(slack_user_id=slack_user_id).first()
+            if user is None:
+                # Create a new user in the database
+                user = Users(
+                    slack_user_id=slack_user_id,
+                    slack_access_token=access_token,
+                    username=username,
+                    email=email
+                )
+                db.session.add(user)
+                db.session.commit()
+
+            
+            jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
+            response = make_response()
+            jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
+            response = make_response(redirect("http://localhost:5174/home"))
+            response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
+            return response
+    else:
+        return "Error: Auth Failed"
+    
+    
+
+                    # valid: jsonData.valid || false,
+                    # username: jsonData.username || null,
+                    # email: jsonData.email || null,
+                    # slack_id: jsonData.slack_id || null
+
+    
+@main.route("/api/me", methods=["GET"])
+def me():
+    token = request.cookies.get("jwt")
+    if not token:
+        return jsonify(message="Unauthorized"), 401
+
+    try:
+        payload = jwt.decode(token, signing_secret, algorithms=["HS256"])
+        user_id = payload["user_id"]
+        user = db.session.query(Users).filter_by(id=user_id).first()
+        if user:
+            return jsonify(user={"id": str(user.id), "username": user.username, "email": user.email, "slack_id":user.slack_user_id, "valid": True}), 200
+        else:
+            return jsonify(message="User not found"), 404
+    except jwt.ExpiredSignatureError:
+        return jsonify(message="Token expired"), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message="Invalid token"), 401

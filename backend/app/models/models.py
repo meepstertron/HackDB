@@ -17,7 +17,7 @@ class Users(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     slack_access_token: Mapped[str] = mapped_column(Text)
-    slack_id : Mapped[str] = mapped_column(Text)
+    slack_user_id : Mapped[str] = mapped_column(Text)
     username: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text)
     quota: Mapped[Optional[int]] = mapped_column(Integer, server_default=text('100'))

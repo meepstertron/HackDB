@@ -5,6 +5,7 @@ from config import Config
 import redis
 from rq import Queue
 import os
+from flask_cors import CORS
 
 db = SQLAlchemy()
 rq = None
@@ -14,6 +15,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     db.init_app(app)
+    CORS(app, supports_credentials=True)
 
     # Set up Redis Queue
     global rq

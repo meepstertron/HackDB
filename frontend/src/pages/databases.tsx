@@ -10,26 +10,18 @@ export function DBPage() {
     {
       id: "2e7e89d8-faff-4c1f-933b-2be43034ff3d",
       name: "Test",
-      tables: 3,
-      size: "1GB",
-      cost: 0.5,
-      status: "active",
+      tables: 3
     },
     {
       id: "3e7e89d8-faff-4c1f-933b-2be43034ff3d",
       name: "Test",
-      tables: 3,
-      size: "15MB",
-      cost: 0.5,
-      status: "idle",
+      tables: 5,
     },
     {
       id: "4e7e89d8-faff-4c1f-933b-2be43034ff3d",
       name: "Test",
       tables: 3,
-      size: "1GB",
-      cost: 0.5,
-      status: "active",
+
     },
   ]
 

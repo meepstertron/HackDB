@@ -6,4 +6,5 @@ redis
 rq
 slack
 slack_sdk
-jwt
+PyJwt
+Flask-Cors
