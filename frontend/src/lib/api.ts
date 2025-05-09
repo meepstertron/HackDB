@@ -1,6 +1,12 @@
-
-
 export const API_URL = import.meta.env.VITE_API_URL || 'https://8906-85-0-8-196.ngrok-free.app/api';
+
+
+interface Database {
+    id: string;
+    name: string;
+    tables: number;
+}
+
 
 export function getMyself() {
         fetch(API_URL + "/me", {
@@ -23,7 +29,7 @@ export function getMyself() {
 
 
 export function getUsersDatabases() {
-    fetch(API_URL + "/userdbs", {
+    return fetch(API_URL + "/userdbs", {
         method: "GET",
         credentials: "include"})
         .then(async (response) => {
@@ -36,6 +42,6 @@ export function getUsersDatabases() {
         })
         .catch((error) => {
             console.error("Error fetching user data:", error)
+            return []
         });
-
 }

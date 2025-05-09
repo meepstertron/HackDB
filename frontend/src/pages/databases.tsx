@@ -1,29 +1,39 @@
 "use client"
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { getUsersDatabases } from "@/lib/api"
 import { Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+
+interface Database {
+  id: string;
+  name: string;
+  tables: number;
+}
 
 export function DBPage() {
   const navigate = useNavigate()
-  const databases = [
-    {
-      id: "2e7e89d8-faff-4c1f-933b-2be43034ff3d",
-      name: "Test",
-      tables: 3
-    },
-    {
-      id: "3e7e89d8-faff-4c1f-933b-2be43034ff3d",
-      name: "Test",
-      tables: 5,
-    },
-    {
-      id: "4e7e89d8-faff-4c1f-933b-2be43034ff3d",
-      name: "Test",
-      tables: 3,
+  const [databases, setDatabases] = useState<Database[]>([])
 
-    },
-  ]
+  useEffect(() => {
+    const fetchDatabases = async () => {
+        try {
+            const dbs = await getUsersDatabases();
+            if (dbs && dbs.databases) {
+                setDatabases(dbs.databases);
+            } else {
+                setDatabases([]); 
+            }
+        } catch (error) {
+            console.error("Error fetching databases:", error);
+            setDatabases([]);
+        }
+    };
+    fetchDatabases();
+}, []);
+
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

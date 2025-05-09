@@ -3,9 +3,11 @@ import jwt
 
 from app import db, rq
 import logging
-from helpers import checkToken, checkTable
+
 import os
-from models import Users, Databases, Usertables
+from ..models import Users, Databases, Usertables
+import re 
+from sqlalchemy import text 
 
 signing_secret = os.environ["SLACK_SIGNING_SECRET"]
 
@@ -28,18 +30,18 @@ def get_user_dbs():
         logging.error(f"Error decoding JWT: {e}")
         return jsonify(message='Invalid token: Unknown error'), 401
     
-    user = db.session.query(Users).filter_by(id=payload["user_id"]).first
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
     if not user:
         return jsonify(message='User not found'), 404
     
-    dbs = db.session.query(Databases).filter_by(owner=user["id"])
+    dbs = db.session.query(Databases).filter_by(owner=user.id).all()
     
     databases = []
     
     for database in dbs:
         currentdb = {}
-        currentdb["id"] = database["id"]
-        currentdb["name"] = database["name"]
+        currentdb["id"] = database.id 
+        currentdb["name"] = database.name 
         databases.append(currentdb)
         
     return jsonify(databases=databases), 200
@@ -60,48 +62,86 @@ def create_user_db():
         logging.error(f"Error decoding JWT: {e}")
         return jsonify(message='Invalid token: Unknown error'), 401
     
-    user = db.session.query(Users).filter_by(id=payload["user_id"]).first
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
     
     if not user:
         return jsonify(message='User not found'), 404
     
     
-    dbs = db.session.query(Databases).filter_by(owner=user["id"])
+    dbs_query = db.session.query(Databases).filter_by(owner=user.id)
     
-    if dbs.count() >= 5:
+    if dbs_query.count() >= 5:
         return jsonify(message='User has reached the maximum number of databases'), 403
+    
     data = request.get_json()
     if not data or 'name' not in data:
-        return jsonify(message='Invalid request'), 400
+        return jsonify(message='Invalid request: "name" for database is required'), 400
+    
     
     new_db = Databases(
         name=data["name"],
-        owner=user["id"]
+        owner=user.id 
     )
-    
-    new_table = Usertables(
-        name="items",
-        db=new_db["id"]
-    )
-    
-    db.session.add(new_table)
-    
-    db.session.flush()  # Flush to get the new table ID
-    
-    result = db.session.execute('', bind=db.get_engine(bind='userdb'))
+    db.session.add(new_db)
     
     try:
-        db.session.add(new_db)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error creating database: {e}")
-        return jsonify(message='Database creation failed'), 500
-    return jsonify(message='Database created successfully'), 201
-
         
-@udb.route('/userdbs/<db_id>', methods=['DELETE'])
-def delete_user_db(db_id):
+        db.session.flush()
+
+       
+        logical_table_name = "items" 
+        new_usertable_metadata = Usertables(
+            name=logical_table_name,
+            db=new_db.id 
+        )
+        db.session.add(new_usertable_metadata)
+        
+        
+        db.session.flush()
+
+
+        sanitized_logical_name = re.sub(r'[^a-zA-Z0-9_]', '', logical_table_name)
+        uuid_part = str(new_usertable_metadata.id).replace('-', '_')
+        physical_table_name = f"{sanitized_logical_name}_{uuid_part}"
+        
+
+        create_table_sql_statement = f"""
+        CREATE TABLE '{physical_table_name}' (
+            entry_id SERIAL PRIMARY KEY,
+            data JSONB,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        
+
+        userdb_engine = db.get_engine(bind='userdb')
+        with userdb_engine.connect() as connection:
+            connection.execute(text(create_table_sql_statement))
+            connection.commit()
+
+        db.session.commit()
+        
+        return jsonify(
+            message='Database and default table created successfully', 
+            database_id=str(new_db.id),
+            table_id=str(new_usertable_metadata.id),
+            physical_table_name=physical_table_name
+        ), 201
+
+    except Exception as e:
+        db.session.rollback() 
+        logging.error(f"Error creating database or physical table: {e}")
+        return jsonify(message=f'Database creation failed: {str(e)}'), 500
+
+
+
+@udb.route('/userdbs/<uuid:db_id>', methods=['GET'])
+def get_user_db(db_id):
+    """
+    get more info about a db
+    """
+    
     token = request.cookies.get('jwt')
     if not token:
         return jsonify(message='Unauthorized'), 401
@@ -115,38 +155,25 @@ def delete_user_db(db_id):
         logging.error(f"Error decoding JWT: {e}")
         return jsonify(message='Invalid token: Unknown error'), 401
     
-    user = db.session.query(Users).filter_by(id=payload["user_id"]).first
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
     
     if not user:
         return jsonify(message='User not found'), 404
     
+    selected_db = db.session.query(Databases).filter_by(id=db_id, owner=user.id).first()
+    if not selected_db:
+        return jsonify(message='Database not found'), 404
     
-    dbs = db.session.query(Databases).filter_by(owner=user["id"])
+    tables = db.session.query(Usertables).filter_by(db=selected_db.id).all()
     
-    if dbs.count() >= 5:
-        return jsonify(message='User has reached the maximum number of databases'), 403
-    
-    
-    db_to_delete = db.session.query(Databases).filter_by(id=db_id, owner=user["id"]).first()
-    
-    if not db_to_delete:
-        return jsonify(message='Database not found or you do not have permission to delete it'), 404
-    
-    try:
-        db.session.delete(db_to_delete)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error deleting database: {e}")
-        return jsonify(message='Database deletion failed'), 500
-    
-    return jsonify(message='Database deleted successfully'), 200    
-    
-    
-
-
-
-    
-
-    
+    return_payload = {
         
+        'database_id': str(selected_db.id),
+        'owner_id': str(selected_db.owner),
+        'name': selected_db.name,
+        'created_at': selected_db.created_at.isoformat() if selected_db.created_at else None,
+        'num_tables': len(tables)
+    }
+    
+    return jsonify(database=return_payload), 200
+    
