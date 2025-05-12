@@ -1,6 +1,11 @@
-import { Database, Hash, PercentDiamondIcon, Settings2, Workflow } from "lucide-react";
+import { Bug, Database, Hash, House, PercentDiamondIcon, Settings2, Workflow } from "lucide-react";
 // use react router dom to navigate between pages
 import { useNavigate } from "react-router-dom";
+
+import { SidebarContent, SidebarFooter, SidebarHeader, Sidebar as SidebarUI } from "./ui/sidebar";
+import { Button } from "./ui/button";
+import { Tooltip } from "@radix-ui/react-tooltip";
+import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -13,7 +18,7 @@ function Sidebar() {
     ];
 
     return ( 
-        <aside className="w-16 h-full bg-white border-r flex flex-col items-center p-4">
+        <aside className="w-16 h-full bg-white border-r border-gray-300 flex flex-col items-center p-4">
             
             <div className="mb-8">
                 <img src="/logo192.png" alt="Logo" className="h-8 w-8" />
@@ -31,4 +36,35 @@ function Sidebar() {
      );
 }
 
+
+function EditorSidebar() {
+    return (
+        <SidebarUI>
+            <SidebarHeader>
+
+            </SidebarHeader>
+            <SidebarContent>
+
+            </SidebarContent>
+            <SidebarFooter>
+                <div className="flex flex-row gap-2 items-start justify-start w-full">
+
+                    <Tooltip>
+                        <TooltipTrigger asChild><Button variant="outline" className="w-fit h-auto aspect-square"><House /></Button></TooltipTrigger>
+                        <TooltipContent>
+                            <span>Exit</span>
+                        </TooltipContent>
+                        
+                    </Tooltip>
+                    
+                </div>
+            </SidebarFooter>
+        </SidebarUI>
+    )
+}
+
+
+
+
 export default Sidebar;
+export { EditorSidebar, Sidebar };

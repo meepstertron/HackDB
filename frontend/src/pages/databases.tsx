@@ -5,6 +5,7 @@ import { getUsersDatabases } from "@/lib/api"
 import { Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
+import { useMenuBar } from "@/components/menuContext"
 
 interface Database {
   id: string;
@@ -15,8 +16,10 @@ interface Database {
 export function DBPage() {
   const navigate = useNavigate()
   const [databases, setDatabases] = useState<Database[]>([])
+  const { setMenuItems, setTitle } = useMenuBar();
 
   useEffect(() => {
+    setTitle("HackDB - Databases")
     const fetchDatabases = async () => {
         try {
             const dbs = await getUsersDatabases();

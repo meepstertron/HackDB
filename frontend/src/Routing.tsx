@@ -1,12 +1,14 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import App from "./App";
-import RootLayout from "./components/layout";
+import RootLayout, { EditorLayout } from "./components/layout";
 import DBInfo from "./pages/databaseinfo";
 import { DBPage } from "./pages/databases";
 import { useContext } from "react";
 import { AuthContext } from "./components/authContext";
 import  "@/index.css"
 import LoginPage from "./pages/login";
+import DatabaseCreationPage from "./pages/createdb";
+import TableEditor from "./pages/editor";
 
 
 
@@ -46,13 +48,18 @@ function Routing() {
           }/>
           <Route path='/databases/create' element={
             <RootLayout>
-              <p>Create your awesome sauce db</p>
+              <DatabaseCreationPage />
             </RootLayout>
           }/>
           <Route path='/databases/:id' element={
             <RootLayout>
               <DBInfo />
             </RootLayout>
+          }/>
+          <Route path="/tables/editor" element={
+            <EditorLayout>
+              <TableEditor />
+            </EditorLayout>
           }/>
           <Route path="*" element={
             

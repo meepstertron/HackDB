@@ -166,13 +166,39 @@ def get_user_db(db_id):
     
     tables = db.session.query(Usertables).filter_by(db=selected_db.id).all()
     
+    
+    tablesresult = []
+    userdb_engine = db.get_engine(bind='userdb')
+    with userdb_engine.connect() as connection:
+        for table in tables:
+            currenttable = {}
+            currenttable["id"] = table.id 
+            currenttable["name"] = table.name 
+            currenttable["created_at"] = table.created_at.isoformat() if table.created_at else None
+            currenttable["rows"] = connection.execute(text(f'SELECT COUNT(*) FROM "{table.name}_{str(table.id).replace("-", "_")}"')).scalar()
+            currenttable["physical_table_name"] = f"{table.name}_{str(table.id).replace('-', '_')}"
+            # use the table file size from the userdb engine in a readable format so i dont have to convert ti later
+            
+            
+            result = connection.execute(text(f'SELECT pg_size_pretty(pg_total_relation_size(\'{currenttable["physical_table_name"]}\')) AS size;'))
+            size = result.fetchone()
+            if size:
+                currenttable["size"] = size[0]
+            else:
+                currenttable["size"] = "N/A"
+            
+            currenttable["lastModified"] = None
+            tablesresult.append(currenttable)
+            
+    
     return_payload = {
         
         'database_id': str(selected_db.id),
         'owner_id': str(selected_db.owner),
         'name': selected_db.name,
         'created_at': selected_db.created_at.isoformat() if selected_db.created_at else None,
-        'num_tables': len(tables)
+        'num_tables': len(tables),
+        'tables': tablesresult
     }
     
     return jsonify(database=return_payload), 200

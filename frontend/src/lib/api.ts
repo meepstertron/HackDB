@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'https://8906-85-0-8-196.ngrok-free.app/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://condor-willing-buck.ngrok-free.app/api';
 
 
 interface Database {
@@ -43,5 +43,24 @@ export function getUsersDatabases() {
         .catch((error) => {
             console.error("Error fetching user data:", error)
             return []
+        });
+}
+
+
+export function getDatabaseInfo(db_id: string) {
+    return fetch(API_URL + "/userdbs/" + db_id, {
+        method: "GET",
+        credentials: "include"})
+        .then (async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to fetch user data")
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching database info:", error)
+            return null
         });
 }
