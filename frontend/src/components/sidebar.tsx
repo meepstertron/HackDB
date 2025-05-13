@@ -1,11 +1,15 @@
-import { Bug, Database, Hash, House, PercentDiamondIcon, Settings2, Workflow } from "lucide-react";
+import { Bug, Database, Hash, House, PercentDiamondIcon, Plus, Settings2, Table2, Workflow } from "lucide-react";
 // use react router dom to navigate between pages
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import React, { use, useEffect } from "react";
 
-import { SidebarContent, SidebarFooter, SidebarHeader, Sidebar as SidebarUI } from "./ui/sidebar";
+import { SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, Sidebar as SidebarUI } from "./ui/sidebar";
 import { Button } from "./ui/button";
 import { Tooltip } from "@radix-ui/react-tooltip";
 import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { ScrollArea } from "./ui/scroll-area";
+import { Input } from "./ui/input";
+import { cn } from "@/lib/utils";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -36,18 +40,71 @@ function Sidebar() {
      );
 }
 
+function SquareIconButton({ icon, label, onClick, className }: { 
+    icon: React.ReactNode; 
+    label: string; 
+    onClick: () => void; 
+    className?: string; 
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button variant="outline" className={cn("w-fit h-auto aspect-square", className)} onClick={onClick}>
+                    {icon}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                <span>{label}</span>
+            </TooltipContent>
+        </Tooltip>
+    );
+}
+
 
 function EditorSidebar() {
+
+    const navigate = useNavigate();
+    const { dbid } = useParams();
+    const [tables, setTables] = React.useState([
+        { id: "1", name: "Items", rows: 10}
+    ]);
+
+    useEffect(() => {
+        if (!dbid) {
+            setTables([]);
+        }
+    }, [dbid]);
     return (
         <SidebarUI>
             <SidebarHeader>
 
             </SidebarHeader>
             <SidebarContent>
+                <SidebarGroup>
 
+                </SidebarGroup>
+                <SidebarGroup>
+                    <div className="flex gap-1">
+                        <Input placeholder="Search tables..." />
+                        <SquareIconButton icon={<Plus />} label="Add Table" onClick={() => {}} className="h-9" />
+                    </div>
+                    <ScrollArea>
+                        {
+                            tables.map((table) => (
+                                <Button variant="ghost" className="w-full">
+                                    <div className="flex flex-row gap-2 items-center justify-start w-full">
+                                        <Table2 />
+                                        <span>{table.name}</span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground font-normal">{table.rows}</span>
+                                </Button>
+                            ))
+                        }
+                    </ScrollArea>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <div className="flex flex-row gap-2 items-start justify-start w-full">
+                <div className="flex flex-row gap-1 items-start justify-start w-full">
 
                     <Tooltip>
                         <TooltipTrigger asChild><Button variant="outline" className="w-fit h-auto aspect-square"><House /></Button></TooltipTrigger>
@@ -56,7 +113,13 @@ function EditorSidebar() {
                         </TooltipContent>
                         
                     </Tooltip>
-                    
+                    <Tooltip>
+                        <TooltipTrigger asChild><Button variant="outline" className="w-fit h-auto aspect-square"><Bug /></Button></TooltipTrigger>
+                        <TooltipContent>
+                            <span>Report Issue</span>
+                        </TooltipContent>
+                        
+                    </Tooltip>
                 </div>
             </SidebarFooter>
         </SidebarUI>

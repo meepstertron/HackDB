@@ -56,11 +56,17 @@ function Routing() {
               <DBInfo />
             </RootLayout>
           }/>
-          <Route path="/tables/editor" element={
+          <Route path="/editor/:dbid" element={
             <EditorLayout>
               <TableEditor />
             </EditorLayout>
           }/>
+                    <Route path="/editor" element={
+            <EditorLayout>
+              <TableEditor />
+            </EditorLayout>
+          }/>
+          
           <Route path="*" element={
             
               <p>404 Not Found</p>

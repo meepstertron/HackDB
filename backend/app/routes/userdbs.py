@@ -180,7 +180,7 @@ def get_user_db(db_id):
             # use the table file size from the userdb engine in a readable format so i dont have to convert ti later
             
             
-            result = connection.execute(text(f'SELECT pg_size_pretty(pg_total_relation_size(\'{currenttable["physical_table_name"]}\')) AS size;'))
+            result = connection.execute(text(f'SELECT pg_size_pretty(pg_total_relation_size(\'"{currenttable["physical_table_name"]}"\')) AS size;'))
             size = result.fetchone()
             if size:
                 currenttable["size"] = size[0]
