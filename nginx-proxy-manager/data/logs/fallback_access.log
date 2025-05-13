@@ -1,4 +1,0 @@
-[05/May/2025:18:00:34 +0000] 404 - GET http 192.168.1.103 "/shelly" [Client 172.20.0.1] [Length 122] [Gzip 1.35] "ShellyApp/1.29.4/b353250" "-"
-[05/May/2025:18:16:17 +0000] 404 - GET http 192.168.1.103 "/shelly" [Client 172.20.0.1] [Length 122] [Gzip 1.35] "ShellyApp/1.29.4/b353250" "-"
-[05/May/2025:20:34:53 +0000] 200 - GET http dev.local "/" [Client 172.20.0.1] [Length 568] [Gzip 1.86] "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36" "-"
-[05/May/2025:20:34:53 +0000] 400 - GET http dev.local "/favicon.ico" [Client 127.0.0.1] [Length 230] [Gzip -] "-" "-"
