@@ -1,7 +1,13 @@
 import { Bug, Database, Hash, House, PercentDiamondIcon, Plus, Settings2, Table2, Workflow } from "lucide-react";
 // use react router dom to navigate between pages
-import { useNavigate, useParams } from "react-router-dom";
-import React, { use, useEffect } from "react";
+import { data, useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+
+
+import { motion, AnimatePresence } from "framer-motion"
+import { Loader2 } from "lucide-react"
+
+
 
 import { SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, Sidebar as SidebarUI } from "./ui/sidebar";
 import { Button } from "./ui/button";
@@ -10,6 +16,8 @@ import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
+import { getDatabaseTables } from "@/lib/api";
+import { useEditorContext } from "@/editorContext";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -63,17 +71,41 @@ function SquareIconButton({ icon, label, onClick, className }: {
 
 function EditorSidebar() {
 
+    // Remove unused navigate variable
     const navigate = useNavigate();
     const { dbid } = useParams();
-    const [tables, setTables] = React.useState([
+    const [tables, setTables] = React.useState<Array<{id: string, name: string, rows: number}>>([
         { id: "1", name: "Items", rows: 10}
     ]);
+    const { selectedTable, setSelectedTable } = useEditorContext();
+
+
+
+    // make the 
 
     useEffect(() => {
-        if (!dbid) {
-            setTables([]);
-        }
+        const fetchTables = async () => {
+            if (!dbid) {
+                setTables([]);
+            } else {
+                try {
+                    let data = await getDatabaseTables(dbid);
+                   setTables(data.tables);
+                } catch (error) {
+                    console.error("Error fetching tables:", error);
+                    setTables([]);
+                }
+            }
+        };
+
+        fetchTables();
     }, [dbid]);
+
+
+
+    
+
+
     return (
         <SidebarUI>
             <SidebarHeader>
@@ -90,15 +122,17 @@ function EditorSidebar() {
                     </div>
                     <ScrollArea>
                         {
-                            tables.map((table) => (
-                                <Button variant="ghost" className="w-full">
+                            tables && tables.length > 0 ? tables.map((table) => (
+                                <Button key={table.id} variant="ghost" className={"w-full" + (selectedTable === table.id ? " bg-muted" : "")} onClick={() => { setSelectedTable(table.id); }}>
                                     <div className="flex flex-row gap-2 items-center justify-start w-full">
                                         <Table2 />
                                         <span>{table.name}</span>
                                     </div>
                                     <span className="text-xs text-muted-foreground font-normal">{table.rows}</span>
                                 </Button>
-                            ))
+                            )) : (
+                                <div className="p-2 text-center text-muted-foreground">No tables found</div>
+                            )
                         }
                     </ScrollArea>
                 </SidebarGroup>

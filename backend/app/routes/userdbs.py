@@ -202,4 +202,60 @@ def get_user_db(db_id):
     }
     
     return jsonify(database=return_payload), 200
+
+
+@udb.route('/userdbs/<uuid:db_id>/tables', methods=['GET'])
+def get_user_db_tables(db_id):
+    """
+    get all tables in a db and optionally get data from a table
+    """
     
+    token = request.cookies.get('jwt')
+    if not token:
+        return jsonify(message='Unauthorized'), 401
+    try:
+        payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify(message='Token expired'), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message='Invalid token'), 401
+    except Exception as e:
+        logging.error(f"Error decoding JWT: {e}")
+        return jsonify(message='Invalid token: Unknown error'), 401
+    
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+    
+    if not user:
+        return jsonify(message='User not found'), 404
+    
+    selected_db = db.session.query(Databases).filter_by(id=db_id, owner=user.id).first()
+    if not selected_db:
+        return jsonify(message='Database not found'), 404
+    
+    tables = db.session.query(Usertables).filter_by(db=selected_db.id).all()
+    
+    request_type = request.args.get('type')
+    if request_type == 'lite':
+        
+        payload = []
+        userdb_engine = db.get_engine(bind='userdb')
+        with userdb_engine.connect() as connection:
+            for table in tables:
+
+                rows = connection.execute(text(f'SELECT COUNT(*) FROM "{table.name}_{str(table.id).replace("-", "_")}"')).scalar()
+
+                returntable = {
+                    "id": str(table.id),
+                    "name": table.name,
+                    "created_at": table.created_at.isoformat() if table.created_at else None,
+                    "rows": rows,
+                }
+                payload.append(returntable)
+            return jsonify(tables=payload), 200
+        
+        
+    
+    else:
+        return(jsonify(message='Invalid request: "type" must be in range value'), 400)
+
+        

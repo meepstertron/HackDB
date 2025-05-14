@@ -5,6 +5,7 @@ import './index.css'
 import Routing from './Routing'
 import { AuthProvider } from './components/authContext'
 import { MenuBarProvider } from './components/menuContext'
+import { EditorProvider } from './editorContext'
 
 
 
@@ -12,9 +13,11 @@ import { MenuBarProvider } from './components/menuContext'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
-      <MenuBarProvider>
-        <Routing />
-      </MenuBarProvider>
+      <EditorProvider>
+        <MenuBarProvider>
+          <Routing />
+        </MenuBarProvider>
+      </EditorProvider>
     </AuthProvider>
   </StrictMode>,
 )
