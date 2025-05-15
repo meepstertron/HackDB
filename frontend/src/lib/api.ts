@@ -83,3 +83,22 @@ export function getDatabaseTables(db_id: string) {
             return null
         });
 }
+
+export function getTableStructure(table_id: string, db_id: string) {
+    return fetch(API_URL + "/userdbs/"+db_id+ "/tables?type=struct&tableid="+table_id, {
+        method: "GET",
+        credentials: "include"
+    })
+        .then (async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to fetch user data")
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching database info:", error)
+            return null
+        });
+}

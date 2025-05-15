@@ -1,44 +1,19 @@
 import { useMenuBar } from "@/components/menuContext";
-import { useEffect, useState } from "react";
+import { useEditorContext } from "@/editorContext";
+import { getTableStructure } from "@/lib/api";
+import { act, use, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 function TableEditor() {
 
-    const { setMenuItems, setTitle } = useMenuBar();
-    let structure = [
-        {
-            name: "id",
-            type: "int",
-            primary: true,
-            autoIncrement: true,
-            nullable: false,
-            default: null,
-            unique: true,
-            
-        },
-        {
-            name: "name",
-            type: "text",
-            primary: false,
-            autoIncrement: false,
-            nullable: false,
-            default: null,
-            unique: false
-        },
-        {
-            name: "role",
-            type: "select",
-            primary: false,
-            autoIncrement: false,
-            nullable: false,
-            default: null,
-            unique: false,
-            options: [
-                { value: "admin", label: "Admin" },
-                { value: "user", label: "User" },
-                { value: "guest", label: "Guest" }
-            ]
-        }
-    ];
+    const { dbid } = useParams();
+    const { selectedTable, setSelectedTable } = useEditorContext();
+
+
+    const [structure, setStructure] = useState<any[]>([]);
+
+
+
     let data = [
         {
             id: 1,
@@ -56,28 +31,9 @@ function TableEditor() {
             role: "guest"
         }
     ];
-    let tableName = "Table Name";
 
-    useEffect(() => {
-        setTitle("Editor - "+ tableName);
-        setMenuItems([
-            {
-                name: "Database",
-            },
-            {
-                name: "Table",
-                items:[
-                    {
-                        name: "Add Row",
 
-                    },
-                    {
-                        name: "Drop table",
-                    }
-                ]
-            }
-        ]);
-    }, []);
+
 
     type Change = {
         column: string;
@@ -94,11 +50,28 @@ function TableEditor() {
         console.log(changes);
     }
 
-    function handleNewColumn() {
 
+    useEffect(() => {
+        const fetchTableStructure = async () => {
+            console.log("precheck")
+            if (selectedTable && dbid) {
+                console.log("Fetching table structure for table: " + selectedTable);
+                setStructure(await getTableStructure(selectedTable, dbid));
+            }
+        }
+        fetchTableStructure();
+    },[selectedTable, dbid]);
+
+    if (!selectedTable) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <h1 className="text-2xl font-bold">Select a table to edit</h1>
+            </div>
+        );
     }
 
-    return ( 
+    return (
+
         <>
             <table className="border-collapse text-sm border border-gray-300">
                 <thead>

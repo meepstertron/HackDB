@@ -253,8 +253,62 @@ def get_user_db_tables(db_id):
                 payload.append(returntable)
             return jsonify(tables=payload), 200
         
+    if request_type == 'struct':
+        #         {
+        #     name: "id",
+        #     type: "int",
+        #     primary: true,
+        #     autoIncrement: true,
+        #     nullable: false,
+        #     default: null,
+        #     unique: true,
+            
+        # },
+        # {
+        #     name: "name",
+        #     type: "text",
+        #     primary: false,
+        #     autoIncrement: false,
+        #     nullable: false,
+        #     default: null,
+        #     unique: false
+        # }
+        payload = []
         
-    
+        table_id = request.args.get('tableid')
+        
+        userdb_engine = db.get_engine(bind='userdb')
+        with userdb_engine.connect() as connection:
+            
+            table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+            if not table:
+                return jsonify(message='Table not found'), 404
+            
+            result = connection.execute(text(f"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = '{table.name}_{str(table.id).replace('-', '_')}'"))
+            
+            for row in result:
+                column_name = row[0]
+                data_type = row[1]
+                is_nullable = row[2]
+                column_default = row[3]
+                
+                # Check if the column is a primary key
+                primary_key_result = connection.execute(text(f"SELECT kcu.column_name FROM information_schema.table_constraints tco JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tco.constraint_name WHERE tco.table_name = '{table.name}_{str(table.id).replace('-', '_')}' AND tco.constraint_type = 'PRIMARY KEY'"))
+                primary_key_columns = [col[0] for col in primary_key_result.fetchall()]
+                
+                payload.append({
+                    "name": column_name,
+                    "type": data_type,
+                    "primary": column_name in primary_key_columns,
+                    "autoIncrement": False,  # PostgreSQL does not have auto-increment columns in the same way as MySQL
+                    "nullable": is_nullable == 'YES',
+                    "default": column_default,
+                    "unique": False  # You can add logic to check for unique constraints if needed
+                })
+
+
+            return jsonify(payload), 200
+
     else:
         return(jsonify(message='Invalid request: "type" must be in range value'), 400)
 
