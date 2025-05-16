@@ -308,7 +308,32 @@ def get_user_db_tables(db_id):
 
 
             return jsonify(payload), 200
+    elif request_type == 'data':
+        table_id = request.args.get('tableid')
+        limit = request.args.get('limit')
+        offset = request.args.get('offset')
+        if not limit:
+            limit = 50
+        if not offset:
+            offset = 0
+        page = request.args.get('page')
+        if not page:
+            page = 1
+        else:
+            page = int(page)
+        if page > 1:
+            offset = (page - 1) * limit
+            
+        userdb_engine = db.get_engine(bind='userdb')
+        with userdb_engine.connect() as connection:
+            table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+            if not table:
+                return jsonify(message='Table not found'), 404
 
+            result = connection.execute(text(f"SELECT * FROM {table.name}_{str(table.id).replace('-', '_')} LIMIT {limit} OFFSET {offset}"))
+            rows = [dict(row) for row in result]
+
+            return jsonify(rows), 200
     else:
         return(jsonify(message='Invalid request: "type" must be in range value'), 400)
 

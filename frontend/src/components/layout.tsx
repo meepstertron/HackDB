@@ -2,13 +2,17 @@ import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
 import Sidebar, { EditorSidebar } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { Database, Loader2 } from "lucide-react"
+import { Database, GitCommitVertical, Loader2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "./ui/sidebar";
 import { r } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { Button } from "./ui/button";
+import { useEditorContext } from "@/editorContext";
+import { Input } from "./ui/input";
+import { Tooltip } from "@radix-ui/react-tooltip";
+import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function RootLayout({ children }: React.PropsWithChildren) {
     const { menuItems, setMenuItems, title, setTitle } = useMenuBar();
@@ -40,36 +44,63 @@ function RootLayout({ children }: React.PropsWithChildren) {
 }
 
 function EditorLayout({ children}: React.PropsWithChildren) {
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true);
+    const { changes, limit, setLimit, offset, setOffset } = useEditorContext();
 
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         setLoading(false);
+    //     }, 7000);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 7000);
-
-        return () => clearTimeout(timer);
-    }, []);
+    //     return () => clearTimeout(timer);
+    // }, []);
 
 
     return (
         <>
-            {loading && (
+            {/* {loading && (
                 <div className="flex items-center justify-center h-screen">
                     <LoadingScreen />
                 </div>
-            )}
+            )} */}
             
             
-            <SidebarProvider className={loading ? "hidden" : ""}>
+            <SidebarProvider className={false ? "hidden" : ""}>
                 <div className="h-screen w-screen flex text-gray-900">
                     <EditorSidebar />
                     <div className="flex flex-col flex-1">
                         
-                        <header className="h-16 flex items-center px-6 border-b border-gray-300 bg-white">
+                        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
                             <SidebarTrigger className="outline-1 outline-gray-300" />
-
-
+                            <div className="flex items-center gap-2 h-full">
+                                <span className="mx-3 text-xs text-muted-foreground" >0 Rows - 0ms</span>
+                                <div className="flex items-center ">
+                                    <Button variant="outline" className="rounded-none rounded-l aspect-square" onClick={() => {setOffset(offset - limit)}}>{"<"}</Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Input value={limit} onBlur={(e) => setLimit(Number(e.target.value))} className="rounded-none w-12 text-center" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Limit</p>
+                                        </TooltipContent>
+                                        
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Input value={offset} onBlur={(e) => setOffset(Number(e.target.value))} className="rounded-none w-12 text-center" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Offset</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Button variant="outline" className="rounded-none rounded-r aspect-square" onClick={() => {setOffset(offset + limit)}}>{">"}</Button>
+                                </div>
+                                <Button variant="outline" className="justify-center items-center">
+                                    <GitCommitVertical />
+                                    <span className="ml-2">Commit</span>
+                                    <span className="ml-2 text-xs font-normal">{changes.length > 99 ? "99+" : changes.length}</span>
+                                </Button>
+                            </div>
                         </header>
                         
                         <main className="flex-1 overflow-auto">

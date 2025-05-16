@@ -74,10 +74,8 @@ function EditorSidebar() {
     // Remove unused navigate variable
     const navigate = useNavigate();
     const { dbid } = useParams();
-    const [tables, setTables] = React.useState<Array<{id: string, name: string, rows: number}>>([
-        { id: "1", name: "Items", rows: 10}
-    ]);
-    const { selectedTable, setSelectedTable } = useEditorContext();
+
+    const { selectedTable, setSelectedTable, changes, tables, setTables } = useEditorContext();
 
 
 
