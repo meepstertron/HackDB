@@ -1,3 +1,5 @@
+import { json } from "stream/consumers";
+
 export const API_URL = import.meta.env.VITE_API_URL || 'https://condor-willing-buck.ngrok-free.app/api';
 
 
@@ -93,6 +95,30 @@ export function getTableStructure(table_id: string, db_id: string) {
             if (response.status === 200) {
                 const jsonData = await response.json()
                 return jsonData
+            } else {
+                throw new Error("Failed to fetch user data")
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching database info:", error)
+            return null
+        });
+}
+
+export function getTableData(table_id: string, db_id: string, limit: number, offset: number) {
+
+
+    return fetch(API_URL + "/userdbs/"+db_id+ "/tables?type=data&tableid="+table_id+"&limit="+limit+"&offset="+offset, {
+        method: "GET",
+        credentials: "include"
+    })
+        .then (async (response) => {
+            const end = performance.now();
+            
+
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return { data: jsonData.rows, time: jsonData.time_taken }
             } else {
                 throw new Error("Failed to fetch user data")
             }

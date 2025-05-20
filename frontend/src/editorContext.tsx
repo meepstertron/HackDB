@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import React from 'react';
 
 
-type Change = {
+export type Change = {
     uuid: string;
     table: string;
     type: string;
@@ -16,7 +16,7 @@ type EditorContextType = {
     selectedTable: string | null;
     setSelectedTable: (table: string | null) => void;
     changes: Change[];
-    setChanges: (changes: Change[]) => void;
+    setChanges: (changes: any[] | ((prev: any[]) => any[])) => void;
     tables: Array<{id: string, name: string, rows: number}>;
     setTables: (tables: Array<{id: string, name: string, rows: number}>) => void;
     selectedRows: number[];
@@ -25,6 +25,10 @@ type EditorContextType = {
     setLimit: (limit: number) => void;
     offset: number;
     setOffset: (offset: number) => void;
+    data: any[];
+    setData: (data: any[] | ((prev: any[]) => any[])) => void;
+    timetaken : number;
+    setTimetaken: (timetaken: number) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -39,8 +43,18 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [changes, setChanges] = useState<any[]>([]);
     const [limit, setLimit] = useState<number>(50);
     const [offset, setOffset] = useState<number>(0);
+    const [data, setData] = useState<any[]>([]);
+    const [timetaken, setTimetaken] = useState<number>(0);
+    let hasDismissedLimitAlert = false;
+    if (limit > 1000 && !hasDismissedLimitAlert) {
+        hasDismissedLimitAlert = confirm("Warning: Fetching more than 1,000 rows may cause lag, sadness, and browser-based suffering. Are you sure what you are doing is worth it?");
+        if (!hasDismissedLimitAlert) {
+            setLimit(50);
+        }
+    }
+
     return (
-        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset }}>
+        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken }}>
             {children}
         </EditorContext.Provider>
     )
@@ -54,3 +68,4 @@ export const useEditorContext = () => {
     }
     return context;
 }
+

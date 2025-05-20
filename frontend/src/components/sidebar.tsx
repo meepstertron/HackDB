@@ -4,10 +4,6 @@ import { data, useNavigate, useParams } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 
 
-import { motion, AnimatePresence } from "framer-motion"
-import { Loader2 } from "lucide-react"
-
-
 
 import { SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, Sidebar as SidebarUI } from "./ui/sidebar";
 import { Button } from "./ui/button";

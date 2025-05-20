@@ -2,7 +2,7 @@ import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
 import Sidebar, { EditorSidebar } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { Database, GitCommitVertical, Loader2 } from "lucide-react"
+import { Database, GitCommitVertical, Loader2, Plus, Trash2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
@@ -15,7 +15,7 @@ import { Tooltip } from "@radix-ui/react-tooltip";
 import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function RootLayout({ children }: React.PropsWithChildren) {
-    const { menuItems, setMenuItems, title, setTitle } = useMenuBar();
+    const { menuItems, setMenuItems, title, setTitle  } = useMenuBar();
     return (
         <div className="h-screen w-screen flex text-gray-900">
             <Sidebar />
@@ -45,16 +45,13 @@ function RootLayout({ children }: React.PropsWithChildren) {
 
 function EditorLayout({ children}: React.PropsWithChildren) {
     // const [loading, setLoading] = useState(true);
-    const { changes, limit, setLimit, offset, setOffset } = useEditorContext();
+    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges } = useEditorContext();
 
-    // useEffect(() => {
-    //     const timer = setTimeout(() => {
-    //         setLoading(false);
-    //     }, 7000);
-
-    //     return () => clearTimeout(timer);
-    // }, []);
-
+    const handleCommit = () => {
+        console.log("Commit changes");
+        console.log("Changes: ", changes);
+        setChanges([]);
+    }
 
     return (
         <>
@@ -71,14 +68,23 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                     <div className="flex flex-col flex-1">
                         
                         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
-                            <SidebarTrigger className="outline-1 outline-gray-300" />
+                            <div>
+                              <SidebarTrigger className="outline-1 outline-gray-300" />
+                              <Button variant="outline" className="ml-4"><Plus /> Add Row</Button>
+                            </div>
+                            {selectedRows.length > 0 && (
+                              <Button variant="destructive">
+                                <Trash2 />
+                                <span className="ml-2">Delete {selectedRows.length } Row{selectedRows.length == 1 ? "" : "s"}</span>
+                              </Button>
+                            )}
                             <div className="flex items-center gap-2 h-full">
-                                <span className="mx-3 text-xs text-muted-foreground" >0 Rows - 0ms</span>
+                                <span className="mx-3 text-xs text-muted-foreground" title={timetaken + "ms"} >{data.length} Rows - {timetaken.toFixed(2)}ms</span>
                                 <div className="flex items-center ">
-                                    <Button variant="outline" className="rounded-none rounded-l aspect-square" onClick={() => {setOffset(offset - limit)}}>{"<"}</Button>
+                                    <Button variant="outline" className="rounded-none rounded-l w-4" onClick={() => {setOffset(offset - limit)}}>{"<"}</Button>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Input value={limit} onBlur={(e) => setLimit(Number(e.target.value))} className="rounded-none w-12 text-center" />
+                                            <Input value={limit} onBlur={(e) => setLimit(Number(e.target.value))} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-none w-12 text-center" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>Limit</p>
@@ -87,15 +93,15 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Input value={offset} onBlur={(e) => setOffset(Number(e.target.value))} className="rounded-none w-12 text-center" />
+                                            <Input value={offset} onBlur={(e) => setOffset(Number(e.target.value))} onChange={(e) => setOffset(Number(e.target.value))} className="rounded-none w-12 text-center" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>Offset</p>
                                         </TooltipContent>
                                     </Tooltip>
-                                    <Button variant="outline" className="rounded-none rounded-r aspect-square" onClick={() => {setOffset(offset + limit)}}>{">"}</Button>
+                                    <Button variant="outline" className="rounded-none rounded-r w-4" onClick={() => {setOffset(offset + limit)}}>{">"}</Button>
                                 </div>
-                                <Button variant="outline" className="justify-center items-center">
+                                <Button variant="outline" className="justify-center items-center" onClick={handleCommit}>
                                     <GitCommitVertical />
                                     <span className="ml-2">Commit</span>
                                     <span className="ml-2 text-xs font-normal">{changes.length > 99 ? "99+" : changes.length}</span>

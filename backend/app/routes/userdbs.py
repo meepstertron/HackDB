@@ -1,3 +1,4 @@
+import time
 from flask import Blueprint, jsonify, request
 import jwt
 
@@ -300,10 +301,10 @@ def get_user_db_tables(db_id):
                     "name": column_name,
                     "type": data_type,
                     "primary": column_name in primary_key_columns,
-                    "autoIncrement": False,  # PostgreSQL does not have auto-increment columns in the same way as MySQL
+                    "autoIncrement": False,  
                     "nullable": is_nullable == 'YES',
                     "default": column_default,
-                    "unique": False  # You can add logic to check for unique constraints if needed
+                    "unique": False 
                 })
 
 
@@ -314,6 +315,8 @@ def get_user_db_tables(db_id):
         offset = request.args.get('offset')
         if not limit:
             limit = 50
+        else: # Ensure limit is an integer so it wont spontaneously combust
+            limit = int(limit)
         if not offset:
             offset = 0
         page = request.args.get('page')
@@ -326,15 +329,19 @@ def get_user_db_tables(db_id):
             
         userdb_engine = db.get_engine(bind='userdb')
         with userdb_engine.connect() as connection:
+            start_timestamp = time.time()
             table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
             if not table:
                 return jsonify(message='Table not found'), 404
 
-            result = connection.execute(text(f"SELECT * FROM {table.name}_{str(table.id).replace('-', '_')} LIMIT {limit} OFFSET {offset}"))
-            rows = [dict(row) for row in result]
-
-            return jsonify(rows), 200
+            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" LIMIT {limit} OFFSET {offset}"))
+            #idk this fixed it somehow
+            rows = [r._asdict() for r in result]
+            time_taken = time.time() - start_timestamp
+            time_taken = time_taken * 1000  # Convert to milliseconds
+            logging.info(f"Query took {time_taken} seconds")
+            return jsonify(rows=rows, time_taken=time_taken), 200
     else:
         return(jsonify(message='Invalid request: "type" must be in range value'), 400)
 
-        
+

@@ -16,12 +16,16 @@ function DBInfo() {
 
     const [properties, setProperties] = useState([
         { name: "UUID", value: id },
-        { name: "Database Name", value: "Loading..." },
-        { name: "Database Size", value: "Loading..." },
-        { name: "Created At", value: "Loading..." },
-        { name: "Last Updated", value: "Loading..." },
-        { name: "number of Tables", value: "Loading..." },
-        { name: "Quota Usage / Week", value: "Loading..." }
+        { name: "Database Name", value: "Loading...", editable: true, onEdit: (value:string) => {
+            setProperties(prevProperties => prevProperties.map(prop => 
+                prop.name === "Database Name" ? { ...prop, value } : prop
+            ));
+        } },
+        { name: "Database Size", value: "Loading...", editable: false, onEdit: () => {} },
+        { name: "Created At", value: "Loading...", editable: false, onEdit: () => {} },
+        { name: "Last Updated", value: "Loading...", editable: false, onEdit: () => {} },
+        { name: "number of Tables", value: "Loading...", editable: false, onEdit: () => {} },
+        { name: "Quota Usage / Week", value: "Loading...", editable: false, onEdit: () => {} }
     ]);
 
     const [tables, setTables] = useState([
@@ -34,15 +38,26 @@ function DBInfo() {
             const response = await getDatabaseInfo(String(id));
             if (response && response.database) {
                 const dbInfo = response.database;
-                setProperties([
-                    { name: "UUID", value: dbInfo.database_id },
-                    { name: "Database Name", value: dbInfo.name },
-                    { name: "Database Size", value: dbInfo.size ?? "N/A" }, 
-                    { name: "Created At", value: dbInfo.created_at },
-                    { name: "Last Updated", value: dbInfo.updated_at ?? "N/A" },
-                    { name: "number of Tables", value: dbInfo.num_tables },
-                    { name: "Quota Usage / Week", value: dbInfo.quota_usage ?? "N/A" }
-                ]);
+                    setProperties([
+                        { name: "UUID", value: dbInfo.database_id, editable: false, onEdit: () => {} },
+                        { 
+                            name: "Database Name", 
+                            value: dbInfo.name, 
+                            editable: true, 
+                            onEdit: (newValue: string) => {
+                                setProperties(prevProperties => prevProperties.map(prop => 
+                                    prop.name === "Database Name" ? { ...prop, value: newValue } : prop
+                                ));
+                                // TODO: Add API call to update database name on the backend
+                                setTitle("HackDB - " + newValue); // Use newValue here
+                            } 
+                        },
+                        { name: "Database Size", value: dbInfo.size ?? "N/A", editable: false, onEdit: () => {} }, 
+                        { name: "Created At", value: dbInfo.created_at, editable: false, onEdit: () => {} },
+                        { name: "Last Updated", value: dbInfo.updated_at ?? "N/A", editable: false, onEdit: () => {} },
+                        { name: "number of Tables", value: dbInfo.num_tables, editable: false, onEdit: () => {} },
+                        { name: "Quota Usage / Week", value: dbInfo.quota_usage ?? "N/A", editable: false, onEdit: () => {} }
+                    ]);
                 setTitle("HackDB - " + dbInfo.name);
                 setTables(dbInfo.tables);
             } else {
@@ -59,13 +74,27 @@ function DBInfo() {
 
     return (
         <>
+            <Button variant={"outline"} className="mb-4" onClick={() => window.location.href = "/editor/" + id}>
+                <Pencil className="mr-2" /> Open in Editor
+            </Button>
             <table className="rounded table table-striped table-bordered border-colapse border border-gray-400">
                 
                 <tbody className="text-center rounded">
 {properties.map((property, index) => (
                     <tr key={index}>
                         <td className="border border-gray-400 p-1">{property.name}</td>
-                        <td className="border border-gray-400 p-1">{property.value}</td>
+                        {property.editable ? (
+                            <td className="border border-gray-400 p-1">
+                                <input 
+                                    type="text" 
+                                    value={property.value} 
+                                    onChange={(e) => property.onEdit(e.target.value)} 
+                                    className="w-full p-1"
+                                />
+                            </td>
+                        ) : (
+                            <td className="border border-gray-400 p-1">{property.value}</td>
+                        )}
                     </tr>))}
                 </tbody>
             </table>
@@ -104,11 +133,6 @@ function DBInfo() {
                                 <td className="border border-gray-400 p-1">{table.rows}</td>
                                 <td className="border border-gray-400 p-1">{table.size}</td>
                                 <td className="border border-gray-400 p-1">{table.lastModified}</td>
-                                <td className="border border-gray-400 p-1">
-                                    <Button variant="outline" className="flex items-center">
-                                        <Pencil className="mr-2" /> Edit
-                                    </Button>
-                                </td>
                             </tr>))}
                         
 
