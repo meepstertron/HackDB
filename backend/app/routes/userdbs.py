@@ -345,3 +345,28 @@ def get_user_db_tables(db_id):
         return(jsonify(message='Invalid request: "type" must be in range value'), 400)
 
 
+@udb.route('/userdbs/tokens', methods=['GET', 'POST'])
+def tokens():
+    if request.method == 'GET':
+        token = request.cookies.get('jwt')
+    if not token:
+        return jsonify(message='Unauthorized'), 401
+    try:
+        payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify(message='Token expired'), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message='Invalid token'), 401
+    except Exception as e:
+        logging.error(f"Error decoding JWT: {e}")
+        return jsonify(message='Invalid token: Unknown error'), 401
+    
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+    
+    if not user:
+        return jsonify(message='User not found'), 404
+    
+    
+    elif request.method == 'POST':
+        # Handle POST request
+        return jsonify(message='POST request received'), 200
