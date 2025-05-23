@@ -1,4 +1,4 @@
-from lib.python.hackdb import HackDB
+from python.hackdb import HackDB
 
 hackdb = HackDB(username="user", password="pass", connection_string="hkdb_tkn_1234567890abcdef")
 

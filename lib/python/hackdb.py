@@ -85,17 +85,7 @@ class HackDB:
         return ModelProxy(name, self._db_connection)
     
     
-    def create_db(self, db_name:str):
-        """
-        Create a new database with the given name.
-        
-        Parameters:
-        db_name (str): The name of the database to create.
-        """
-        if not db_name: 
-            raise ValueError("Database name cannot be empty.")
-        
-        print(f"Creating database: {db_name}")
+
         
         
     def create_table(self, table_name:str, columns:dict):
@@ -110,5 +100,15 @@ class HackDB:
             raise ValueError("Table name and columns cannot be empty.")
         
         print(f"Creating table: {table_name} with columns: {columns}")
+        
+    def get_tables(self):
+        """
+        Retrieve a list of all tables in the database.
+        
+        Returns:
+        list: A list of table names. eg. ["users", "orders", "products"]
+        """
+        print("Retrieving list of tables...")
+        return ["users", "orders", "products"]
 
 

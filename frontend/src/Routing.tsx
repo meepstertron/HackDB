@@ -9,6 +9,7 @@ import  "@/index.css"
 import LoginPage from "./pages/login";
 import DatabaseCreationPage from "./pages/createdb";
 import TableEditor from "./pages/editor";
+import TokenPage from "./pages/tokens";
 
 
 
@@ -66,9 +67,14 @@ function Routing() {
               <TableEditor />
             </EditorLayout>
           }/>
-          
+
+          <Route path="/tokens" element={
+            <RootLayout>
+              <TokenPage />
+            </RootLayout>
+          }/>
           <Route path="*" element={
-            
+
               <p>404 Not Found</p>
           } />
         </Routes>)}
