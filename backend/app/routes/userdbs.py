@@ -6,7 +6,7 @@ from app import db, rq
 import logging
 
 import os
-from ..models import Users, Databases, Usertables
+from ..models import Users, Databases, Usertables, t_tokens
 import re 
 from sqlalchemy import text 
 
@@ -345,10 +345,87 @@ def get_user_db_tables(db_id):
         return(jsonify(message='Invalid request: "type" must be in range value'), 400)
 
 
-@udb.route('/userdbs/tokens', methods=['GET', 'POST'])
+@udb.route('/userdbs/tokens', methods=['GET', 'POST', 'DELETE'])
 def tokens():
     if request.method == 'GET':
         token = request.cookies.get('jwt')
+        if not token:
+            return jsonify(message='Unauthorized'), 401
+        try:
+            payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify(message='Token expired'), 401
+        except jwt.InvalidTokenError:
+            return jsonify(message='Invalid token'), 401
+        except Exception as e:
+            logging.error(f"Error decoding JWT: {e}")
+            return jsonify(message='Invalid token: Unknown error'), 401
+        
+        user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+        
+        if not user:
+            return jsonify(message='User not found'), 404
+        
+        tokens = []
+        
+        access_tokens = db.session.query(t_tokens).filter_by(userid=user.id).all()
+        for token in access_tokens:
+            currenttoken = {}
+            currenttoken["id"] = token.id 
+            currenttoken["databaseid"] = token.dbid
+            currenttoken["database"] = db.session.query(Databases).filter_by(id=token.dbid).first().name
+            currenttoken["name"] = token.name
+            currenttoken["token"] = token.key
+            currenttoken["created_at"] = token.created_at.isoformat() if token.created_at else None
+            tokens.append(currenttoken)
+
+        return jsonify(tokens=tokens), 200
+
+    elif request.method == 'POST':
+        # Handle POST request
+        return jsonify(message='POST request received'), 200
+    elif request.method == 'DELETE':
+        
+        token = request.cookies.get('jwt')
+        if not token:
+            return jsonify(message='Unauthorized'), 401
+        try:
+            payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify(message='Token expired'), 401
+        except jwt.InvalidTokenError:
+            return jsonify(message='Invalid token'), 401
+        except Exception as e:
+            logging.error(f"Error decoding JWT: {e}")
+            return jsonify(message='Invalid token: Unknown error'), 401
+        
+        user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+        
+        if not user:
+            return jsonify(message='User not found'), 404
+        
+        data = request.get_json()
+        if not data or 'token_id' not in data:
+            return jsonify(message='Invalid request: "token_id" is required'), 400
+        
+        token_to_delete = db.session.query(t_tokens).filter_by(id=data['token_id'], owner=user.id).first()
+        
+        if not token_to_delete:
+            return jsonify(message='Token not found'), 404
+        
+        db.session.delete(token_to_delete)
+        db.session.commit()
+        
+        return jsonify(message='Token deleted successfully'), 200
+    
+    
+@udb.route('/userdbs/<uuid:db_id>/commit', methods=['POST'])
+def commit_user_db(db_id):
+    """
+    commit a db
+    """
+    
+    token = request.cookies.get('jwt')
     if not token:
         return jsonify(message='Unauthorized'), 401
     try:
@@ -366,7 +443,7 @@ def tokens():
     if not user:
         return jsonify(message='User not found'), 404
     
+    selected_db = db.session.query(Databases).filter_by(id=db_id, owner=user.id).first()
+    if not selected_db:
+        return jsonify(message='Database not found'), 404
     
-    elif request.method == 'POST':
-        # Handle POST request
-        return jsonify(message='POST request received'), 200

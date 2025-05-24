@@ -1,10 +1,22 @@
 import { Button } from "@/components/ui/button";
+import { getUserTokens } from "@/lib/api";
 import { ClipboardPaste, Shredder } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+
 
 function TokenPage() {
-    const navigate = useNavigate();
+
+
+
+    useEffect(() => {
+        getUserTokens().then((response) => {
+            if (response && response.tokens) {
+                setTokens(response.tokens);
+            } else {
+                console.error("Error fetching tokens:", response);
+            }
+        })
+    }, []);
 
     const [tokens, setTokens] = useState([
         {
@@ -12,14 +24,17 @@ function TokenPage() {
             name: "some app",
             database: "some database",
             databaseid: "add85dce-9f03-4621-955b-3f48df098c48",
-            createdAt: "2023-10-01",
+            created_at: "2023-10-01",
             token: "hkdb_tkn_00000000-0000-0000-0000-00000000000"
 
         },
     ]);
     const handleRevoke = (id:string) => {
-        // Logic to revoke the token
-        console.log(`Revoking token with id: ${id}`);
+        // Remove the very sigma token from the list
+        setTokens(tokens.filter(token => token.id !== id));
+        // uhhh no api route lol
+
+        console.log(`Token with id ${id} revoked`);
     };
 
     return ( 
@@ -45,8 +60,8 @@ function TokenPage() {
                     {tokens.map((token) => (
                         <tr key={token.id} className="border-b border-gray-200">
                             <td className="px-4 py-2 border-gray-200 border">{token.name}</td>
-                            <td className="px-4 py-2 border-gray-200 border">{token.database}</td>
-                            <td className="px-4 py-2 border-gray-200 border">{token.createdAt}</td>
+                            <td className="px-4 py-2 border-gray-200 border"><a href={`/databases/${token.databaseid}`}>{token.database}</a></td>
+                            <td className="px-4 py-2 border-gray-200 border">{token.created_at}</td>
                             <td className="px-4 py-2 border-gray-200 border">
                                 <div className="flex space-x-2">
                                     <Button variant="outline" className="w-1/2" onClick={() => handleRevoke(token.id)}><Shredder /> Revoke</Button>

@@ -128,3 +128,23 @@ export function getTableData(table_id: string, db_id: string, limit: number, off
             return null
         });
 }
+
+
+export function getUserTokens() {
+    return fetch(API_URL + "/userdbs/tokens", {
+        method: "GET",
+        credentials: "include"
+    })
+        .then (async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to fetch user tokens")
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching user tokens:", error)
+            return null
+        });
+}

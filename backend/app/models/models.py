@@ -48,6 +48,8 @@ t_tokens = Table(
     Column('userid', Uuid, nullable=False),
     Column('key', Text, nullable=False, server_default=text("'''hkdb_tkn_'' || gen_random_uuid()'::text")),
     Column('dbid', Uuid, nullable=False),
+    Column('created_at', DateTime(True), nullable=True, server_default=text('now()')),
+    Column('name', Text, nullable=True, server_default=text("DB token")),
     ForeignKeyConstraint(['dbid'], ['databases.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_dbid_fkey'),
     ForeignKeyConstraint(['userid'], ['users.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_userid_fkey')
 )

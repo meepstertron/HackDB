@@ -3,6 +3,7 @@ import json
 import os
 import logging
 import re
+import requests
 
 
 
@@ -29,28 +30,12 @@ class ModelProxy:
             return [{'id': 1, 'username': 'Meep', 'email': 'meep@example.com'}]
         return [] # Default empty result
 
-    def get(self, query_dict):
-        print(f"  Executing 'get' operation...")
-        results = self._process_query(query_dict)
-        # 'get' typically expects one or zero results
-        return results[0] if results else None
 
     def find_many(self, query_dict):
         print(f"  Executing 'find_many' operation...")
         return self._process_query(query_dict)
     
-    def delete(self, query_dict):
-        print(f"  Executing 'delete' operation...")
-        # Simulate deletion
-        return True if query_dict else False
-    
-    def insert(self, data_dict):
-        print(f"  Executing 'insert' operation...")
-        
-        
-        
-        # Simulate insertion
-        return True if data_dict else False
+
     
 
     # Add other methods like create, update, delete similarly
@@ -60,22 +45,31 @@ class ModelProxy:
 # --- HackDB Class ---
 
 class HackDB:
-    def __init__(self, username:str, password:str, connection_string:str):
-        self.username = username 
-        self.password = password
-        self.connected = False
-        if not password or not username:
-            self.connection_string = connection_string
-            if not connection_string:
-                raise ValueError("Either connection_string or username and password must be provided.")
-            
-            if not connection_string.startswith("hkdb_tkn_"):
-                raise ValueError("Invalid connection string format. Must start with 'hkdb_tkn_'")
+    def __init__(self, token:str=None):
+        self.token = token or os.getenv("HACKDB_TOKEN")
+        self.base_url = "https://hackdb.hexagonical.ch/api/sdk/v1"
+        if not self.token:
+            raise ValueError("HACKDB_TOKEN must be set either as an argument or as an environment variable.")
         else:
-            self.connection_string = None
+            # Validate the token format
+            if not re.match(r"^hkdb_tkn_[a-f0-9\-]{36}$", self.token):
+                raise ValueError("Invalid token format.")
+
+            response = requests.get(f"{self.base_url}/validatetoken", headers={"Authorization": f"Bearer {self.token}"})
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("valid"):
+                    self.connected = True
+                    print("Successfully connected to HackDB.")
+                else:
+                    raise ValueError("Invalid token. Please check your token.")
             
-        self.base_url = "https://hackdb.hexagonical.ch/api/v1"
+        self.connected = False
+            
+        
         self._db_connection = self # Initialize _db_connection
+        
         
     def __getattr__(self, name):
         # This method is called when an attribute is accessed that doesn't exist.

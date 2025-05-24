@@ -2,6 +2,7 @@ import { useMenuBar } from "@/components/menuContext";
 import { useEditorContext, Change } from "@/editorContext";
 import { getTableData, getTableStructure } from "@/lib/api";
 import { Plus } from "lucide-react";
+import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -116,6 +117,7 @@ function TableEditor() {
             column,
             oldValue,
             newValue,
+            table: selectedTable,
             type: "edit",
             timestamp: new Date().toISOString(),
         },
@@ -204,6 +206,9 @@ function TableEditor() {
                 ))}
                 </tbody>
             </table>
+            <div className="w-full bg-gray-100 h-15 sticky bottom-0">
+                <textarea className="w-full h-15 p-2" placeholder="Filter for content..."></textarea>
+            </div>
         </>
      );
 }
