@@ -6,7 +6,7 @@ from app import db, rq
 import logging
 
 import os
-from ..models import Users, Databases, Usertables, t_tokens
+from ..models import Users, Databases, Usertables, Tokens
 import re 
 from sqlalchemy import text 
 
@@ -368,7 +368,7 @@ def tokens():
         
         tokens = []
         
-        access_tokens = db.session.query(t_tokens).filter_by(userid=user.id).all()
+        access_tokens = db.session.query(Tokens).filter_by(userid=user.id).all()
         for token in access_tokens:
             currenttoken = {}
             currenttoken["id"] = token.id 
@@ -408,7 +408,7 @@ def tokens():
         if not data or 'token_id' not in data:
             return jsonify(message='Invalid request: "token_id" is required'), 400
         
-        token_to_delete = db.session.query(t_tokens).filter_by(id=data['token_id'], owner=user.id).first()
+        token_to_delete = db.session.query(Tokens).filter_by(id=data['token_id'], owner=user.id).first()
         
         if not token_to_delete:
             return jsonify(message='Token not found'), 404

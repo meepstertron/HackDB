@@ -25,8 +25,10 @@ def create_app(config_class=Config):
 
     from .routes.main import main as main_blueprint
     from .routes.userdbs import udb as userdb_blueprint
+    from .routes.sdk import sdk as sdk_blueprint
     app.register_blueprint(main_blueprint)
     app.register_blueprint(userdb_blueprint)
+    app.register_blueprint(sdk_blueprint)
 
     from . import models 
     return app

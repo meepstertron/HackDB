@@ -77,7 +77,7 @@ def post_install():
             jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
             response = make_response()
             jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
-            response = make_response(redirect("http://localhost:5174/home"))
+            response = make_response(redirect("http://localhost:5173/home"))
             response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
             return response
     else:

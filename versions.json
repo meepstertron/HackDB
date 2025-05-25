@@ -1,0 +1,10 @@
+{
+    "client": {
+        "python": [
+            "python-0.0.1-dev"
+        ]
+    },
+    "server": [
+        "0.0.1-dev"
+    ]
+}

@@ -42,17 +42,33 @@ class Databases(Base):
     usertables: Mapped[List['Usertables']] = relationship('Usertables', back_populates='databases')
 
 
-t_tokens = Table(
-    'tokens', Base.metadata,
-    Column('id', Uuid, nullable=False, server_default=text('gen_random_uuid()')),
-    Column('userid', Uuid, nullable=False),
-    Column('key', Text, nullable=False, server_default=text("'''hkdb_tkn_'' || gen_random_uuid()'::text")),
-    Column('dbid', Uuid, nullable=False),
-    Column('created_at', DateTime(True), nullable=True, server_default=text('now()')),
-    Column('name', Text, nullable=True, server_default=text("DB token")),
-    ForeignKeyConstraint(['dbid'], ['databases.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_dbid_fkey'),
-    ForeignKeyConstraint(['userid'], ['users.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_userid_fkey')
-)
+# t_tokens = Table(
+#     'tokens', Base.metadata,
+#     Column('id', Uuid, nullable=False, server_default=text('gen_random_uuid()')),
+#     Column('userid', Uuid, nullable=False),
+#     Column('key', Text, nullable=False, server_default=text("'''hkdb_tkn_'' || gen_random_uuid()'::text")),
+#     Column('dbid', Uuid, nullable=False),
+#     Column('created_at', DateTime(True), nullable=True, server_default=text('now()')),
+#     Column('name', Text, nullable=True, server_default=text("DB token")),
+#     ForeignKeyConstraint(['dbid'], ['databases.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_dbid_fkey'),
+#     ForeignKeyConstraint(['userid'], ['users.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_userid_fkey')
+# )
+
+class Tokens(Base):
+    __tablename__ = 'tokens'
+    __table_args__ = (
+        ForeignKeyConstraint(['dbid'], ['databases.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_dbid_fkey'),
+        ForeignKeyConstraint(['userid'], ['users.id'], ondelete='CASCADE', onupdate='CASCADE', name='tokens_userid_fkey'),
+        PrimaryKeyConstraint('id', name='tokens_pkey')
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    userid: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'''hkdb_tkn_'' || gen_random_uuid()'::text"))
+    dbid: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), nullable=True, server_default=text('now()'))
+    name: Mapped[Optional[str]] = mapped_column(Text, nullable=True, server_default=text("DB token"))
+
 
 
 class Usertables(Base):
