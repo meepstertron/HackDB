@@ -4,14 +4,35 @@ import os
 import logging
 import re
 import requests
+from typing import Literal, Optional, Union, Dict, Any, TypedDict
 
-client_version = "python-0.0.1-dev"  # Version of the HackDB client
+client_version = "python-0.0.2-dev"  # Version of the HackDB client
+
 
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+
+WHERE_OPERATORS = [
+    "equals",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "contains",
+    "in"
+]
+
+class OperatorDict(TypedDict, total=False):
+    equals: Any
+    gt: Any
+    lt: Any
+    gte: Any
+    lte: Any
+    contains: Any
+    in_: list
 
 
 
@@ -22,14 +43,37 @@ class ModelProxy:
         if db_connection.debug: print(f"Accessed model: {self._model_name}")
 
 
+    
 
 
-    def find_many(self, where=None, order=None, include=None):
-        query_dict = {
-            "where": where,
-            "order": order,
-            "include": include
-        }
+    def find_many(
+        self,
+        where: dict[str, OperatorDict] = None,
+        order=None,
+        include=None
+    ):
+        """
+        Find multiple records in the database.
+
+        Parameters:
+        where (dict): A dictionary specifying the conditions for filtering records.
+            Example:
+                {
+                    "id": {"equals": 5},
+                    "name": {"contains": "bob"},
+                    "age": {"gt": 18, "lt": 65}
+                }
+            Supported operators: "equals", "gt", "lt", "gte", "lte", "contains", "in"
+            For IntelliSense, use: WHERE_OPERATORS
+
+        order (str): Optional. The field by which to order the results.
+        include (list): Optional. A list of related models to include in the results.
+        Returns:
+        list: A list of records matching the specified conditions.
+        """
+        query_dict = {}
+        if where is not None:
+            query_dict["lookup_string"] = json.dumps(where)
         # Remove None values from the dictionary
         query_dict = {k: v for k, v in query_dict.items() if v is not None}
 
@@ -47,7 +91,116 @@ class ModelProxy:
         else:
             logger.error(f"Failed to retrieve data: {response.status_code} - {response.text}")
             return []
+        
+    
+    def delete(self, where=None):
+        """
+        Delete records from the database.
 
+        Parameters:
+        where (dict): A dictionary specifying the conditions for deleting records.
+            Example:
+                {
+                    "id": {"equals": 5},
+                    "name": {"contains": "bob"}
+                }
+            Supported operators: "equals", "gt", "lt", "gte", "lte", "contains", "in"
+            For IntelliSense, use: WHERE_OPERATORS
+
+        Returns:
+        bool: True if deletion was successful, False otherwise.
+        """
+        query_dict = {}
+        if where is not None:
+            query_dict["lookup_string"] = json.dumps(where)
+        # Remove None values from the dictionary
+        query_dict = {k: v for k, v in query_dict.items() if v is not None}
+        
+        if not self._db_connection.connected:
+            raise ValueError("Database connection is not established.")
+
+        response = requests.delete(
+            f"{self._db_connection.base_url}/tables/{self._model_name}/delete",
+            headers={"Authorization": f"Bearer {self._db_connection.token}"},
+            params=query_dict
+        )
+
+        if response.status_code == 200:
+            return True
+        else:
+            logger.error(f"Failed to delete data: {response.status_code} - {response.text}")
+            return False
+        
+        
+    def create(self, data: dict):
+        """
+        Create a new record in the database.
+
+        Parameters:
+        data (dict): A dictionary containing structured (matching the table you are inserting to) data for the new record.
+            Example:
+                {
+                    "name": "Alice",
+                    "age": 30,
+                    "email": "alice@example.com"
+                }
+        Returns:
+        bool: True if creation was successful, False otherwise.
+        """
+        query_dict = {"data": json.dumps(data)}
+        if not self._db_connection.connected:
+            raise ValueError("Database connection is not established.")
+
+        response = requests.post(
+            f"{self._db_connection.base_url}/tables/{self._model_name}/create",
+            headers={"Authorization": f"Bearer {self._db_connection.token}"},
+            json=query_dict
+        )
+
+        if response.status_code == 201:
+            return True
+        else:
+            logger.error(f"Failed to create record: {response.status_code} - {response.text}")
+            return False
+        
+        
+    def count(self, where: dict[str, OperatorDict] = None):
+        """
+        Count the number of records in the database.
+
+        Parameters:
+        where (dict): A dictionary specifying the conditions for counting records.
+            Example:
+                {
+                    "id": {"equals": 5},
+                    "name": {"contains": "bob"}
+                }
+            Supported operators: "equals", "gt", "lt", "gte", "lte", "contains", "in"
+            For IntelliSense, use: WHERE_OPERATORS
+
+        Returns:
+        int: The count of records matching the specified conditions.
+        """
+        query_dict = {}
+        if where is not None:
+            query_dict["lookup_string"] = json.dumps(where)
+        # Remove None values from the dictionary
+        query_dict = {k: v for k, v in query_dict.items() if v is not None}
+
+        if not self._db_connection.connected:
+            raise ValueError("Database connection is not established.")
+
+        response = requests.get(
+            f"{self._db_connection.base_url}/tables/{self._model_name}/count",
+            headers={"Authorization": f"Bearer {self._db_connection.token}"},
+            params=query_dict
+        )
+
+        if response.status_code == 200:
+            return response.json().get("count", 0)
+        else:
+            logger.error(f"Failed to count records: {response.status_code} - {response.text}")
+            return 0
 
 
 # --- HackDB Class ---

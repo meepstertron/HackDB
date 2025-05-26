@@ -1,7 +1,10 @@
 import { useMenuBar } from "@/components/menuContext";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { useEditorContext, Change } from "@/editorContext";
 import { getTableData, getTableStructure } from "@/lib/api";
-import { Plus } from "lucide-react";
+import { PopoverContent } from "@radix-ui/react-popover";
+import { Plus, X } from "lucide-react";
 import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -167,8 +170,17 @@ function TableEditor() {
                             <input type="checkbox" className="w-3 h-3" onChange={handleSelectAll} />
                         </th>
                         {structure.map((column, index) => (
-                            <th className="text-left border border-gray-300 p-1" key={column.name || index}> 
-                                {column.name} <span className="text-xs font-normal">{column.type}</span>
+                            <th className="text-left border border-gray-300 p-1 hover:bg-gray-50 cursor-pointer" key={column.name || index}>
+                                <Popover>
+                                    <PopoverTrigger className="flex items-center w-full">
+                                        {column.name} <span className="text-xs font-normal ml-2">{column.type}</span>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                        <h4>Edit Column</h4>
+                                        <Button variant='ghost' size='sm'><X  className="w-4 h-4"/></Button>
+                                    </PopoverContent>
+                                </Popover>
+                                
                             </th>
                         ))}
                         

@@ -1,5 +1,5 @@
 from app import db
-from models import t_tokens, Usertables, Databases
+from .models import Tokens, Usertables, Databases
 
 def checkToken(token: str) -> bool:
     """
@@ -9,7 +9,7 @@ def checkToken(token: str) -> bool:
     if not token.startswith('hkdb_tkn_'):
         return False
     
-    if not db.session.query(t_tokens).filter(t_tokens.c.key == token).first():
+    if not db.session.query(Tokens).filter(Tokens.c.key == token).first():
         return False
     
     return True
@@ -25,7 +25,7 @@ def checkTable(table: str, token: str ) -> bool:
         return False
     
     # get token entry
-    tokenentry = db.session.query(t_tokens).filter(t_tokens.c.key == token).first()
+    tokenentry = db.session.query(Tokens).filter(Tokens.c.key == token).first()
     if not tokenentry:
         return False
     dbid = tokenentry['dbid']
@@ -51,7 +51,7 @@ def tableToUUID(table: str, token: str) -> str:
         return None
     
     # get token entry
-    tokenentry = db.session.query(t_tokens).filter(t_tokens.c.key == token).first()
+    tokenentry = db.session.query(Tokens).filter(Tokens.c.key == token).first()
     if not tokenentry:
         return None
     dbid = tokenentry['dbid']
@@ -64,12 +64,43 @@ def tableToUUID(table: str, token: str) -> str:
     return str(table_entry.id)
 
 
-def whereObjectParser(model, where: dict):
+def whereObjectParser(where: dict):
     """
-     Parse a where object into a SQLAlchemy filter.
+     Parse a where object into a WHERE thingie for sql 
     """
-    filters = []
-    for field, conditon in where.items():
+    if not where:
+        return None
+    
+    sql_where = "WHERE "
+    
+    where_list = []
+    
+    for column, operation in where.items():
         
-    
-    
+        if isinstance(operation, dict):
+            for operation, value in operation.items():
+                if operation == 'equals':
+                    where_list.append(f"{column} = '{value}'")
+                if operation == 'gt':
+                    where_list.append(f"{column} > '{value}'")
+                if operation in ['gte', 'ge', 'greaterthanequal']:
+                    where_list.append(f"{column} >= '{value}'")
+                if operation == 'lt':
+                    where_list.append(f"{column} < '{value}'")
+                if operation in ['lte', 'le', 'lessthanequal']:
+                    where_list.append(f"{column} <= '{value}'")
+                if operation == 'contains':
+                    where_list.append(f"{column} LIKE '%{value}%'")
+                if operation == 'startswith':
+                    where_list.append(f"{column} LIKE '{value}%'")
+                if operation == 'endswith':
+                    where_list.append(f"{column} LIKE '%{value}'")
+
+
+        else:
+            where_list.remove(f"{column} ")
+            raise ValueError(f"Invalid operation for column {column}: {operation}")
+    sql_where += " AND ".join(where_list)
+
+    return sql_where
+
