@@ -1,10 +1,12 @@
 import { useMenuBar } from "@/components/menuContext";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverTrigger, PopoverContent} from "@/components/ui/popover";
 import { useEditorContext, Change } from "@/editorContext";
 import { getTableData, getTableStructure } from "@/lib/api";
-import { PopoverContent } from "@radix-ui/react-popover";
-import { Plus, X } from "lucide-react";
+
+import { ArrowUpWideNarrow, Plus, Trash2, X } from "lucide-react";
 import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -12,7 +14,7 @@ import { useParams } from "react-router-dom";
 function TableEditor() {
 
     const { dbid } = useParams();
-    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset } = useEditorContext();
+    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter } = useEditorContext();
 
 
     const [structure, setStructure] = useState<any[]>([]);
@@ -32,6 +34,8 @@ function TableEditor() {
                 setOffset(0);
                 console.log("Fetching table structure for table: " + selectedTable);
                 setStructure(await getTableStructure(selectedTable, dbid));
+                
+
             }
         }
         fetchTableStructure();
@@ -41,6 +45,7 @@ function TableEditor() {
     useEffect(() => {
         const fetchTableData = async () => {
             if (selectedTable && dbid) {
+                setData([]);
                 setFailedToGetData(false);
                 getTableData(selectedTable, dbid, limit, offset).then((response) => {
                     if (response && response.data) {
@@ -96,6 +101,16 @@ function TableEditor() {
         }
     };
 
+    const constructWhereClause = (row: any ) => { //give whole row as input!!
+        let where: { [key: string]: any } = {};
+        for (const key in row) {
+            const value = row[key];
+            if (value !== null && value !== undefined) {
+                where[key] = {"equals": value };
+            }
+        }
+        return where;
+    };
 
     const handleInput = (
     e: FocusEvent<HTMLInputElement | HTMLSelectElement> | ChangeEvent<HTMLInputElement>,
@@ -112,11 +127,34 @@ function TableEditor() {
         newValue = target.value;
     }
 
+    if (target.type === 'datetime-local') {
+        newValue = turnNormaliedTimestampBackIntoNormalSQLTimestamp(newValue);
+    }
+    if (oldValue == newValue) {
+        return; // No change, do nothing
+    }
+
+    if (target.type === 'integer' || target.type === 'number') {
+        newValue = parseInt(newValue, 10);
+    }
+    if (target.type === 'float' || target.type === 'double') {
+        newValue = parseFloat(newValue);
+    }
+    const currentRow = data.find(row => row.hiddenRowIDforFrontend === rowId);
+    const where = currentRow ? constructWhereClause(currentRow) : {};
+
+    // remove the edited value from the where clause since it wont be the same as the old value
+    if (where[column]) {
+        delete where[column];
+        
+    }
+    delete where.hiddenRowIDforFrontend;
+
     if (newValue !== oldValue) {
         setChanges(prev => [
         ...prev,
         {
-            rowId,
+            where: where,
             column,
             oldValue,
             newValue,
@@ -130,6 +168,8 @@ function TableEditor() {
             row.hiddenRowIDforFrontend === rowId
             ? { ...row, [column]: newValue }
             : row
+
+
         )
         );
     }
@@ -160,6 +200,14 @@ function TableEditor() {
     }
 
 
+    function turnNormaliedTimestampBackIntoNormalSQLTimestamp(value: string) {
+        if (!value) return null;
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return null; // Invalid date
+        return date.toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    }
+
+
     return (
 
         <>
@@ -177,7 +225,25 @@ function TableEditor() {
                                     </PopoverTrigger>
                                     <PopoverContent>
                                         <h4>Edit Column</h4>
-                                        <Button variant='ghost' size='sm'><X  className="w-4 h-4"/></Button>
+
+                                        <Button variant='ghost' size='sm' className=""><ArrowUpWideNarrow className="w-4 h-4" /></Button>
+                                        <Button variant='ghost' size='sm' className="ml-2" onClick={() => {
+                                            setStructure(prev => prev.filter((_, i) => i !== index));
+                                            setChanges(prev => [
+                                                ...prev,
+                                                {
+                                                    column: column.name,
+                                                    oldValue: null,
+                                                    newValue: null,
+                                                    table: selectedTable,
+                                                    type: "delete_column",
+                                                    timestamp: new Date().toISOString(),
+                                                },
+                                            ]);
+                                        }}><Trash2 className="w-4 h-4" /></Button>
+
+                                        <Label htmlFor="column-name">Column Name</Label>
+                                        <Input id="column-name" />
                                     </PopoverContent>
                                 </Popover>
                                 
@@ -192,8 +258,16 @@ function TableEditor() {
                         <td className="w-6 border border-gray-300 p-0.5 text-center">
                             <input checked={selectedRows.includes(row.hiddenRowIDforFrontend)} onChange={() => toggleRowSelection(row.hiddenRowIDforFrontend)} type="checkbox" className="w-3 h-3" />
                         </td>
-                        {structure.map((column, colIndex) => ( 
-                            <td key={column.name || colIndex} className="border border-gray-300 p-1">
+                        {structure.map((column, colIndex) => (
+                            <td
+                                key={column.name || colIndex}
+                                className={
+                                    "border border-gray-300 p-1" +
+                                    (!column.nullable && (row[column.name as keyof typeof row] === null || row[column.name as keyof typeof row] === undefined)
+                                        ? " bg-red-400"
+                                        : "")
+                                }
+                            >
                                 {column.type === "select" ? (
                                     <select className="w-full bg-gray-100 text-xs rounded" defaultValue={String(row[column.name as keyof typeof row])} onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])}>
                                         {column.options?.map((option: { value: string | number | readonly string[] | undefined; label: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: Key | null | undefined) => (
@@ -219,7 +293,7 @@ function TableEditor() {
                 </tbody>
             </table>
             <div className="w-full bg-gray-100 h-15 sticky bottom-0">
-                <textarea className="w-full h-15 p-2" placeholder="Filter for content..."></textarea>
+                <textarea className="w-full h-15 p-2" placeholder="Filter for content..." onChange={(e) => setContentFilter && setContentFilter(String(e.target.value))}></textarea>
             </div>
         </>
      );

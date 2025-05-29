@@ -6,6 +6,7 @@ import Routing from './Routing'
 import { AuthProvider } from './components/authContext'
 import { MenuBarProvider } from './components/menuContext'
 import { EditorProvider } from './editorContext'
+import { Toaster } from './components/ui/sonner'
 
 
 
@@ -19,5 +20,6 @@ createRoot(document.getElementById('root')!).render(
         </MenuBarProvider>
       </EditorProvider>
     </AuthProvider>
+    <Toaster />
   </StrictMode>,
 )
