@@ -59,6 +59,21 @@ services:
     networks:
       - app-network
 
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      - backend
+      - redis
+    environment:
+      - FLASK_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+    env_file:
+      - ./.env
+    networks:
+      - app-network
+
 
 volumes:
   postgres_data:

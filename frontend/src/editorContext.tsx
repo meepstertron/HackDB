@@ -29,6 +29,8 @@ type EditorContextType = {
     setData: (data: any[] | ((prev: any[]) => any[])) => void;
     timetaken : number;
     setTimetaken: (timetaken: number) => void;
+    contentFilter?: string;
+    setContentFilter?: (filter: string) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -45,6 +47,8 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [offset, setOffset] = useState<number>(0);
     const [data, setData] = useState<any[]>([]);
     const [timetaken, setTimetaken] = useState<number>(0);
+    const [contentFilter, setContentFilter] = useState<string>('');
+
     let hasDismissedLimitAlert = false;
     if (limit > 1000 && !hasDismissedLimitAlert) {
         hasDismissedLimitAlert = confirm("Warning: Fetching more than 1,000 rows may cause lag, sadness, and browser-based suffering. Are you sure what you are doing is worth it?");
@@ -54,7 +58,7 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken }}>
+        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter }}>
             {children}
         </EditorContext.Provider>
     )

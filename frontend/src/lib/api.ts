@@ -148,3 +148,27 @@ export function getUserTokens() {
             return null
         });
 }
+
+
+export function commitChanges(changes: any[], db_id: string) {
+    return fetch(API_URL + "/userdbs/" + db_id + "/commit", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ commits:changes })
+    })
+        .then(async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to commit changes")
+            }
+        })
+        .catch((error) => {
+            console.error("Error committing changes:", error)
+            return null
+        });
+}
