@@ -1,12 +1,10 @@
-import os
-import redis
-from rq import Worker, Queue, Connection
+from rq import Worker, Queue
+from redis import Redis
 
 listen = ['default']
-redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
-conn = redis.from_url(redis_url)
+redis_url = "redis://redis:6379/0"
+conn = Redis.from_url(redis_url)
 
 if __name__ == '__main__':
-    with Connection(conn):
-        worker = Worker(list(map(str, listen)))
-        worker.work()
+    worker = Worker([Queue(name, connection=conn) for name in listen])
+    worker.work()

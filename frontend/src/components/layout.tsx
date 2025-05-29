@@ -13,6 +13,9 @@ import { useEditorContext } from "@/editorContext";
 import { Input } from "./ui/input";
 import { Tooltip } from "@radix-ui/react-tooltip";
 import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { commitChanges } from "@/lib/api";
+import { toast } from "sonner";
+import { useParams } from "react-router-dom";
 
 function RootLayout({ children }: React.PropsWithChildren) {
     const { menuItems, setMenuItems, title, setTitle  } = useMenuBar();
@@ -44,12 +47,27 @@ function RootLayout({ children }: React.PropsWithChildren) {
 }
 
 function EditorLayout({ children}: React.PropsWithChildren) {
+  const { dbid } = useParams();
     // const [loading, setLoading] = useState(true);
     const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges } = useEditorContext();
 
     const handleCommit = () => {
         console.log("Commit changes");
         console.log("Changes: ", changes);
+        if (changes.length === 0) {
+            toast.error("No changes to commit");
+            return;
+        }
+        commitChanges(changes, dbid || "")
+            .then((response) => {
+                if (response) {
+                    console.log("Changes committed successfully:", response);
+                }
+            })
+            .catch((error) => {
+                console.error("Error committing changes:", error);
+                toast.error("Error committing changes");
+            });
         setChanges([]);
     }
 

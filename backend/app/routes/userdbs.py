@@ -426,6 +426,7 @@ def commit_user_db(db_id):
     """
     
     token = request.cookies.get('jwt')
+    commitlist = request.get_json(). get('commits', [])
     if not token:
         return jsonify(message='Unauthorized'), 401
     try:
@@ -447,3 +448,9 @@ def commit_user_db(db_id):
     if not selected_db:
         return jsonify(message='Database not found'), 404
     
+    if not commitlist:
+        return jsonify(message='Invalid request: "commits" is required (this means my goofy ahh backend has messed up, report to github)'), 400
+    
+    for commit in commitlist:
+        job = rq.enqueue('app.tasks.commit_change', commit, db_id, user.id)
+    return jsonify(message='Commit queued successfully'), 200

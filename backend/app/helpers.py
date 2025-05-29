@@ -80,21 +80,24 @@ def whereObjectParser(where: dict):
         if isinstance(operation, dict):
             for operation, value in operation.items():
                 if operation == 'equals':
-                    where_list.append(f"{column} = '{value}'")
+                    if value is None:
+                        where_list.append(f"{column} IS NULL")
+                    else:
+                        where_list.append(f"{column} = {_convert_to_sql_type(value)}")
                 if operation == 'gt':
-                    where_list.append(f"{column} > '{value}'")
+                    where_list.append(f"{column} > {_convert_to_sql_type(value)}")
                 if operation in ['gte', 'ge', 'greaterthanequal']:
-                    where_list.append(f"{column} >= '{value}'")
+                    where_list.append(f"{column} >= {_convert_to_sql_type(value)}")
                 if operation == 'lt':
-                    where_list.append(f"{column} < '{value}'")
+                    where_list.append(f"{column} < {_convert_to_sql_type(value)}")
                 if operation in ['lte', 'le', 'lessthanequal']:
-                    where_list.append(f"{column} <= '{value}'")
+                    where_list.append(f"{column} <= {_convert_to_sql_type(value)}")
                 if operation == 'contains':
-                    where_list.append(f"{column} LIKE '%{value}%'")
+                    where_list.append(f"{column} LIKE '%{_convert_to_sql_type(value)}%'")
                 if operation == 'startswith':
-                    where_list.append(f"{column} LIKE '{value}%'")
+                    where_list.append(f"{column} LIKE '{_convert_to_sql_type(value)}%'")
                 if operation == 'endswith':
-                    where_list.append(f"{column} LIKE '%{value}'")
+                    where_list.append(f"{column} LIKE '%{_convert_to_sql_type(value)}'")
 
 
         else:
@@ -104,3 +107,17 @@ def whereObjectParser(where: dict):
 
     return sql_where
 
+
+
+def _convert_to_sql_type(value):
+    """
+    Convert a Python value to a SQL type.
+    """
+    if isinstance(value, str):
+        return f"'{value}'"
+    elif isinstance(value, (int, float)):
+        return str(value)
+    elif value is None:
+        return "NULL"
+    else:
+        raise ValueError(f"Unsupported value type: {type(value)}")
