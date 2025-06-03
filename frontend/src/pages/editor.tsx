@@ -3,18 +3,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverTrigger, PopoverContent} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useEditorContext, Change } from "@/editorContext";
 import { getTableData, getTableStructure } from "@/lib/api";
 
-import { ArrowUpWideNarrow, Plus, Trash2, X } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, Plus, Trash2, X } from "lucide-react";
 import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
+
+export const constructWhereClause = (row: any ) => { //give whole row as input!!
+        let where: { [key: string]: any } = {};
+        for (const key in row) {
+            const value = row[key];
+            if (value !== null && value !== undefined) {
+                where[key] = {"equals": value };
+            }
+        }
+        return where;
+    };
+
+
 function TableEditor() {
 
     const { dbid } = useParams();
-    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter } = useEditorContext();
+    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy } = useEditorContext();
 
 
     const [structure, setStructure] = useState<any[]>([]);
@@ -45,14 +65,16 @@ function TableEditor() {
     useEffect(() => {
         const fetchTableData = async () => {
             if (selectedTable && dbid) {
-                setData([]);
                 setFailedToGetData(false);
-                getTableData(selectedTable, dbid, limit, offset).then((response) => {
+                let sortbystr = (sortBy && sortBy.column) ? `${sortBy.column},${sortBy.direction}` : undefined;
+
+                getTableData(selectedTable, dbid, limit, offset, sortbystr).then((response) => {
                     if (response && response.data) {
                         const processedData = response.data.map((item: any, index: number) => ({
                             ...item,
                             hiddenRowIDforFrontend: (index * 1.4375) + offset 
                         }));
+                        
                         setData(processedData);
                         setTimetaken(response.time);
                     } else {
@@ -64,24 +86,10 @@ function TableEditor() {
             }
         }
         fetchTableData();
-    }, [selectedTable, dbid, limit, offset]); 
+    }, [selectedTable, dbid, limit, offset, sortBy]); 
 
 
-    if (!selectedTable) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <h1 className="text-2xl font-bold">Select a table to edit</h1>
-            </div>
-        );
-    }
 
-    if (failedToGetData) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <h1 className="text-2xl font-bold">No Records Found with these parameters</h1>
-            </div>
-        );
-    }
 
     const toggleRowSelection = (rowId: number) => {
         const newSelectedRows = selectedRows.includes(rowId) 
@@ -101,16 +109,6 @@ function TableEditor() {
         }
     };
 
-    const constructWhereClause = (row: any ) => { //give whole row as input!!
-        let where: { [key: string]: any } = {};
-        for (const key in row) {
-            const value = row[key];
-            if (value !== null && value !== undefined) {
-                where[key] = {"equals": value };
-            }
-        }
-        return where;
-    };
 
     const handleInput = (
     e: FocusEvent<HTMLInputElement | HTMLSelectElement> | ChangeEvent<HTMLInputElement>,
@@ -208,6 +206,21 @@ function TableEditor() {
     }
 
 
+    if (!selectedTable) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <h1 className="text-2xl font-bold">Select a table to edit</h1>
+            </div>
+        );
+    }
+
+    if (failedToGetData) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <h1 className="text-2xl font-bold">No Records Found with these parameters</h1>
+            </div>
+        );
+    }
     return (
 
         <>
@@ -226,7 +239,14 @@ function TableEditor() {
                                     <PopoverContent>
                                         <h4>Edit Column</h4>
 
-                                        <Button variant='ghost' size='sm' className=""><ArrowUpWideNarrow className="w-4 h-4" /></Button>
+                                        <Button variant='ghost' size='sm' className="" onClick={() => {
+                                            setSortBy({
+                                                column: column.name,
+                                                direction: sortBy?.column === column.name && sortBy?.direction === 'asc' ? 'desc' : 'asc'
+                                            });
+                                            
+
+                                        }}>{sortBy?.column === column.name && sortBy?.direction === 'asc' ? <ArrowDownWideNarrow className="w-4 h-4" /> : <ArrowUpWideNarrow className="w-4 h-4" />}</Button>
                                         <Button variant='ghost' size='sm' className="ml-2" onClick={() => {
                                             setStructure(prev => prev.filter((_, i) => i !== index));
                                             setChanges(prev => [
@@ -243,13 +263,21 @@ function TableEditor() {
                                         }}><Trash2 className="w-4 h-4" /></Button>
 
                                         <Label htmlFor="column-name">Column Name</Label>
-                                        <Input id="column-name" />
+                                        <Input id="column-name" defaultValue={column.name} />
+                                        <Select>
+                                            <SelectTrigger className="w-[180px]">
+                                                <SelectValue placeholder="Theme" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="light">Light</SelectItem>
+                                                <SelectItem value="dark">Dark</SelectItem>
+                                                <SelectItem value="system">System</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </PopoverContent>
                                 </Popover>
-                                
                             </th>
                         ))}
-                        
                     </tr>
                 </thead>
                 <tbody>

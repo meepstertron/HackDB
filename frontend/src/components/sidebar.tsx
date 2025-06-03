@@ -44,7 +44,7 @@ function Sidebar() {
      );
 }
 
-function SquareIconButton({ icon, label, onClick, className }: { 
+export function SquareIconButton({ icon, label, onClick, className }: { 
     icon: React.ReactNode; 
     label: string; 
     onClick: () => void; 

@@ -313,6 +313,21 @@ def get_user_db_tables(db_id):
         table_id = request.args.get('tableid')
         limit = request.args.get('limit')
         offset = request.args.get('offset')
+        sort = request.args.get('sort') # sort = {'column': 'name', 'direction': 'asc'}
+        
+        if sort:
+            sort_parts = sort.split(',')
+            column = sort_parts[0].strip()
+            direction = sort_parts[1].strip().lower() if len(sort_parts) > 1 else 'asc'
+            # Validate column and direction separately
+            if not re.match(r'^[a-zA-Z0-9_]+$', column):
+                return jsonify(message='Invalid sort column'), 400
+            if direction not in ['asc', 'desc']:
+                return jsonify(message='Invalid sort direction'), 400
+            sort = f'ORDER BY "{column}" {direction.upper()}'
+        else:
+            sort = ''
+        
         if not limit:
             limit = 50
         else: # Ensure limit is an integer so it wont spontaneously combust
@@ -334,7 +349,11 @@ def get_user_db_tables(db_id):
             if not table:
                 return jsonify(message='Table not found'), 404
 
-            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" LIMIT {limit} OFFSET {offset}"))
+            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" {sort} LIMIT {limit} OFFSET {offset}"))
+            if result is None:
+                return jsonify(message='No data found'), 404
+            if result.returns_rows is False:
+                return jsonify(message='No data found'), 404
             #idk this fixed it somehow
             rows = [r._asdict() for r in result]
             time_taken = time.time() - start_timestamp
@@ -453,4 +472,42 @@ def commit_user_db(db_id):
     
     for commit in commitlist:
         job = rq.enqueue('app.tasks.commit_change', commit, db_id, user.id)
-    return jsonify(message='Commit queued successfully'), 200
+        commit['job_id'] = job.id
+    return jsonify(message='Commit queued successfully', jobs=commitlist), 200
+
+
+
+@udb.route('/userdbs/poll', methods=['GET'])
+def poll_information():
+    """
+    poll for information about commit tasks (and more soon)
+    """
+    method = request.args.get('method')
+    
+    if method == 'commit_result':
+        """
+        Get how many of the commits have been processed and how many have succeeded/ failed
+        """
+        job_ids = request.args.getlist('job_ids')
+        if not job_ids:
+            return jsonify(message='Invalid request: "job_ids" is required'), 400
+        
+        results = []
+        for job_id in job_ids:
+            job = rq.get_job(job_id)
+            if job:
+                results.append({
+                    'job_id': job.id,
+                    'status': job.get_status(),
+                    'result': job.result
+                })
+            else:
+                results.append({
+                    'job_id': job_id,
+                    'status': 'not_found',
+                    'result': None
+                })
+        failed = any(result['status'] == 'failed' for result in results)
+        failed += any(result['result'] == 'failed' for result in results)
+        pending = any(result['status'] == 'queued' for result in results)
+        return jsonify(results=results, failed=failed, pending=pending, total=len(results)), 200

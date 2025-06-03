@@ -95,12 +95,22 @@ def commit_change(change:dict, db_id, user_id):
             
             # ass code lol
         elif change.get("type") == "delete":
+            # remove hiddenRowIDforFrontend from where clause
+            # if where:
+            #     del where["hiddenRowIDforFrontend"]
             query = text(f"""
                 DELETE FROM "{actual_table_name}" 
                 WHERE {where}
             """)
             params = {}
 
+        elif change.get("type") == "delete_column":
+            column = change.get("column")
+            query = text(f"""
+                ALTER TABLE "{actual_table_name}" 
+                DROP COLUMN {column}
+            """)
+            params = {}
 
         else:
             raise ValueError(f"Unsupported change type: {change.get('type')}")
@@ -111,5 +121,8 @@ def commit_change(change:dict, db_id, user_id):
             print(f"Query executed successfully: {query}, {params}")
             if result:
                 print(f"affected rows: {result.rowcount}")
+                if result.rowcount == 0:
+                    print("No rows were affected by the query.")
+                    return "failed"
 
         return change

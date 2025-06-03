@@ -105,10 +105,10 @@ export function getTableStructure(table_id: string, db_id: string) {
         });
 }
 
-export function getTableData(table_id: string, db_id: string, limit: number, offset: number) {
+export function getTableData(table_id: string, db_id: string, limit: number, offset: number, sortBy?:string, contentFilter?: string) {
 
 
-    return fetch(API_URL + "/userdbs/"+db_id+ "/tables?type=data&tableid="+table_id+"&limit="+limit+"&offset="+offset, {
+    return fetch(API_URL + "/userdbs/"+db_id+ "/tables?type=data&tableid="+table_id+"&limit="+limit+"&offset="+offset+ (sortBy ? "&sort="+sortBy : ""), {
         method: "GET",
         credentials: "include"
     })
