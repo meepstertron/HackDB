@@ -401,8 +401,45 @@ def tokens():
         return jsonify(tokens=tokens), 200
 
     elif request.method == 'POST':
-        # Handle POST request
-        return jsonify(message='POST request received'), 200
+        token = request.cookies.get('jwt')
+        if not token:
+            return jsonify(message='Unauthorized'), 401
+        try:
+            payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify(message='Token expired'), 401
+        except jwt.InvalidTokenError:
+            return jsonify(message='Invalid token'), 401
+        except Exception as e:
+            logging.error(f"Error decoding JWT: {e}")
+            return jsonify(message='Invalid token: Unknown error'), 401
+        
+        user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+        
+        if not user:
+            return jsonify(message='User not found'), 404
+        
+        data = request.get_json()
+        if not data or 'name' not in data or 'dbid' not in data:
+            return jsonify(message='Invalid request: "name" and "dbid" are required'), 400
+        
+        dbid = data['dbid']
+        selected_db = db.session.query(Databases).filter_by(id=dbid, owner=user.id).first()
+        
+        if not selected_db:
+            return jsonify(message='Database not found'), 404
+        
+        new_token = Tokens(
+            name=data['name'],
+            key=jwt.encode({'user_id': user.id, 'db_id': dbid}, signing_secret, algorithm='HS256'),
+            userid=user.id,
+            dbid=dbid
+        )
+        
+        db.session.add(new_token)
+        db.session.commit()
+        
+        return jsonify(message='Token created successfully', token=new_token.key), 201
     elif request.method == 'DELETE':
         
         token = request.cookies.get('jwt')

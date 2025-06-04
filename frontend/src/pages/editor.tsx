@@ -19,10 +19,34 @@ import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement,
 import { useParams } from "react-router-dom";
 
 
+const datatypes = [ // postgresql datatypes
+    "text",
+    "integer",
+    "float",
+    "double",
+    "boolean",
+    "cidir",
+    "date",
+    "timestamp",
+    "json"
+]
+
+
 export const constructWhereClause = (row: any ) => { //give whole row as input!!
         let where: { [key: string]: any } = {};
         for (const key in row) {
-            const value = row[key];
+            let value = row[key];
+
+
+            if (key === "hiddenRowIDforFrontend") continue; // Skip the frontend ID
+
+
+            if (value instanceof Date) {
+                value = value.toISOString().slice(0, 19).replace('T', ' '); // Convert Date to SQL format
+            }
+
+
+
             if (value !== null && value !== undefined) {
                 where[key] = {"equals": value };
             }
@@ -266,12 +290,14 @@ function TableEditor() {
                                         <Input id="column-name" defaultValue={column.name} />
                                         <Select>
                                             <SelectTrigger className="w-[180px]">
-                                                <SelectValue placeholder="Theme" />
+                                                <SelectValue placeholder="Select a type" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="light">Light</SelectItem>
-                                                <SelectItem value="dark">Dark</SelectItem>
-                                                <SelectItem value="system">System</SelectItem>
+                                                {datatypes.map((type) => (
+                                                    <SelectItem key={type} value={type}>
+                                                        {type}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </PopoverContent>

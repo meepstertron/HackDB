@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { getUserTokens } from "@/lib/api";
-import { ClipboardPaste, Shredder } from "lucide-react";
+import { ClipboardPaste, Grid2x2Plus, Shredder } from "lucide-react";
 import { useEffect, useState } from "react";
 
 
@@ -39,7 +39,10 @@ function TokenPage() {
 
     return ( 
         <>
-            <h1 className="text-2xl font-bold">Your Access tokens</h1>
+            <div className="mb-4 flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Your Access tokens</h1>
+                <Button variant="outline"><Grid2x2Plus />  Create Token</Button>
+            </div>
             <div
             className="p-3 mx-5 mb-4 outline-dashed outline-2 outline-yellow-500 bg-yellow-100 text-yellow-800 "
             >
