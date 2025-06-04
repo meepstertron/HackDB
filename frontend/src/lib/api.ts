@@ -150,6 +150,36 @@ export function getUserTokens() {
 }
 
 
+export function revokeToken(token_id: string) {
+    return fetch(API_URL + "/userdbs/tokens/" + token_id, {
+        method: "DELETE",
+        credentials: "include"
+    })
+        .then(async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to revoke user token")
+            }
+        })
+        .catch((error) => {
+            console.error("Error revoking user token:", error)
+            return null
+        });
+}
+
+export function createToken(name: string, db_id: string) {
+    return fetch(API_URL + "/userdbs/tokens", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, db_id })
+    })
+    }
+
 export function commitChanges(changes: any[], db_id: string) {
     return fetch(API_URL + "/userdbs/" + db_id + "/commit", {
         method: "POST",
@@ -159,7 +189,7 @@ export function commitChanges(changes: any[], db_id: string) {
         },
         body: JSON.stringify({ commits:changes })
     })
-        .then(async (response) => {
+    .then(async (response) => {
             if (response.status === 200) {
                 const jsonData = await response.json()
                 return jsonData
