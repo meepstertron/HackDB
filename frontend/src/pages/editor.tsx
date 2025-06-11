@@ -1,5 +1,6 @@
 import { useMenuBar } from "@/components/menuContext";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverTrigger, PopoverContent} from "@/components/ui/popover";
@@ -13,7 +14,7 @@ import {
 import { useEditorContext, Change } from "@/editorContext";
 import { getTableData, getTableStructure } from "@/lib/api";
 
-import { ArrowDownWideNarrow, ArrowUpWideNarrow, Plus, Trash2, X } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, Plus, Save, Trash2, X } from "lucide-react";
 import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -67,7 +68,11 @@ function TableEditor() {
     const [failedToGetData, setFailedToGetData] = useState(false);
 
 
-
+    useEffect(() => {
+        if (setContentFilter) {
+            setContentFilter(`{}`);
+        }
+    }, []);
 
 
     useEffect(() => {
@@ -261,7 +266,7 @@ function TableEditor() {
                                         {column.name} <span className="text-xs font-normal ml-2">{column.type}</span>
                                     </PopoverTrigger>
                                     <PopoverContent>
-                                        <h4>Edit Column</h4>
+                                        <h4 className="text-lg mb-2">Edit Column</h4>
 
                                         <Button variant='ghost' size='sm' className="" onClick={() => {
                                             setSortBy({
@@ -286,10 +291,11 @@ function TableEditor() {
                                             ]);
                                         }}><Trash2 className="w-4 h-4" /></Button>
 
-                                        <Label htmlFor="column-name">Column Name</Label>
+                                        <Label htmlFor="column-name" className="mb-1 mt-2">Column Name</Label>
                                         <Input id="column-name" defaultValue={column.name} />
+                                        <Label htmlFor="column-type" className="mt-2 mb-1">Column Type</Label>
                                         <Select>
-                                            <SelectTrigger className="w-[180px]">
+                                            <SelectTrigger id="column-type" className="w-full">
                                                 <SelectValue placeholder="Select a type" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -300,6 +306,46 @@ function TableEditor() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        <Label htmlFor="default-value" className="mt-2 mb-1">Default Value</Label>
+                                        
+                                        
+                                        <Input id="default-value" defaultValue={column.defaultValue || ''} placeholder="Optional default value" />
+
+                                        <div className="flex items-center space-x-2">
+                                            
+                                            <Checkbox id="allow-nullvalues" />
+                                            <Label htmlFor="allow-nullvalues" className="mt-2 mb-1">Allow Null Values</Label>
+                                        </div>
+
+
+                                        <div className="flex items-center space-x-2">
+                                            
+                                            <Checkbox id="Primary Key" checked={column.primaryKey || false} onChange={(e) => {
+                                                setStructure(prev => {
+                                                    const newStructure = [...prev];
+                                                    newStructure[index] = {
+                                                        ...newStructure[index],
+                                                        primaryKey: (e.target as HTMLInputElement).checked,
+                                                    };
+                                                    return newStructure;
+                                                });
+                                                setChanges(prev => [
+                                                    ...prev,
+                                                    {
+                                                        column: column.name,
+                                                        oldValue: column.primaryKey || false,
+                                                        newValue: (e.target as HTMLInputElement).checked,
+                                                        table: selectedTable,
+                                                        type: "edit",
+                                                        timestamp: new Date().toISOString(),
+                                                    },
+                                                ]);
+                                            }
+                                            } />
+                                            <Label htmlFor="Primary Key" className="mt-2 mb-1">Primary Key</Label>
+                                        </div>
+                                        <Button variant="default"><Save /> Save Changes</Button>
+
                                     </PopoverContent>
                                 </Popover>
                             </th>
@@ -346,9 +392,7 @@ function TableEditor() {
                 ))}
                 </tbody>
             </table>
-            <div className="w-full bg-gray-100 h-15 sticky bottom-0">
-                <textarea className="w-full h-15 p-2" placeholder="Filter for content..." onChange={(e) => setContentFilter && setContentFilter(String(e.target.value))}></textarea>
-            </div>
+            
         </>
      );
 }

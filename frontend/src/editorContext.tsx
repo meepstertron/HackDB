@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import React from 'react';
 
 
@@ -52,13 +52,17 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [contentFilter, setContentFilter] = useState<string>('');
     const [sortBy, setSortBy] = useState<{column: string, direction: 'asc' | 'desc'} >({ column: '', direction: 'asc' });
 
-    let hasDismissedLimitAlert = false;
-    if (limit > 1000 && !hasDismissedLimitAlert) {
-        hasDismissedLimitAlert = confirm("Warning: Fetching more than 1,000 rows may cause lag, sadness, and browser-based suffering. Are you sure what you are doing is worth it?");
-        if (!hasDismissedLimitAlert) {
-            setLimit(50);
+    const hasDismissedLimitAlert = useRef(false);
+
+    useEffect(() => {
+        if (limit > 1000 && !hasDismissedLimitAlert.current) {
+            const confirmed = confirm("Warning: Fetching more than 1,000 rows may cause lag, sadness, and browser-based suffering. Are you sure?");
+            if (!confirmed) {
+                setLimit(50);
+            }
+            hasDismissedLimitAlert.current = true;
         }
-    }
+    }, [limit]);
 
     return (
         <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter, sortBy, setSortBy }}>

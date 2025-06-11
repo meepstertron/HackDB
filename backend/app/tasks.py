@@ -100,7 +100,7 @@ def commit_change(change:dict, db_id, user_id):
             #     del where["hiddenRowIDforFrontend"]
             query = text(f"""
                 DELETE FROM "{actual_table_name}" 
-                WHERE {where}
+                {where}
             """)
             params = {}
 

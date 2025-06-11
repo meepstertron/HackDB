@@ -157,7 +157,7 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                             </div>
                         </header>
                         
-                        <main className="flex-1 overflow-auto">
+                        <main className="flex-1 overflow-auto ">
                             {children}
                         </main>
                     </div>

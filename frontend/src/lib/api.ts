@@ -202,3 +202,26 @@ export function commitChanges(changes: any[], db_id: string) {
             return null
         });
 }
+
+export function createDatabase(name: string) {
+    return fetch(API_URL + "/userdbs/create", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+    })
+    .then(async (response) => {
+            if (response.status === 201) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to create database")
+            }
+        })
+        .catch((error) => {
+            console.error("Error creating database:", error)
+            return null
+        });
+}

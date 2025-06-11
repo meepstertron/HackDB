@@ -107,7 +107,7 @@ def create_user_db():
         
 
         create_table_sql_statement = f"""
-        CREATE TABLE '{physical_table_name}' (
+        CREATE TABLE "{physical_table_name}" (
             entry_id SERIAL PRIMARY KEY,
             data JSONB,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -115,10 +115,19 @@ def create_user_db():
         );
         """
         
+        
 
         userdb_engine = db.get_engine(bind='userdb')
         with userdb_engine.connect() as connection:
             connection.execute(text(create_table_sql_statement))
+            
+             # add example data to the table
+            example_data = {
+                "example_key": "example_value",
+                "description": "Thank you for using hackdb"
+            }
+
+            connection.execute(text(f'INSERT INTO "{physical_table_name}" (data) VALUES (:data)'), {"data": example_data})
             connection.commit()
 
         db.session.commit()
