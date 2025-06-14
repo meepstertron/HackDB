@@ -14,6 +14,7 @@ import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
 import { getDatabaseTables } from "@/lib/api";
 import { useEditorContext } from "@/editorContext";
+import { DBSwitcher } from "./dbswitcher";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -102,10 +103,16 @@ function EditorSidebar() {
 
     return (
         <SidebarUI>
-            <SidebarHeader>
-
+            <SidebarHeader className="">
+                <DBSwitcher teams={
+                    [
+                        { name: "VotingAPP", logo: Database, plan: "Pro" },
+                        { name: "Testapp", logo: Database, plan: "Free" },
+                    ]
+                } />
+                
             </SidebarHeader>
-            <SidebarContent>
+            <SidebarContent className="mt-0">
                 <SidebarGroup>
 
                 </SidebarGroup>
