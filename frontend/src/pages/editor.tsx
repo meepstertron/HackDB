@@ -428,7 +428,7 @@ function TableEditor() {
                                 ) : column.type === "boolean" ? (
                                     <input type="checkbox" className="w-full p-0.5 text-xs" onChange={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} checked={row[column.name as keyof typeof row]} />
                                 ) : (
-                                    <input type={column.type} className="w-full p-0.5 text-xs" onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} defaultValue={row[column.name as keyof typeof row]} />
+                                    <input type={column.type} className="w-full p-0.5 text-xs" onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} defaultValue={JSON.stringify(row[column.name as keyof typeof row])} />
                                 )}
                             </td>
                         ))}
