@@ -43,6 +43,8 @@ def get_user_dbs():
         currentdb = {}
         currentdb["id"] = database.id 
         currentdb["name"] = database.name 
+        currentdb["tables"] = db.session.query(Usertables).filter_by(db=database.id).count()
+        currentdb["size"] = "N/A"
         databases.append(currentdb)
         
     return jsonify(databases=databases), 200
@@ -107,7 +109,7 @@ def create_user_db():
         
 
         create_table_sql_statement = f"""
-        CREATE TABLE '{physical_table_name}' (
+        CREATE TABLE "{physical_table_name}" (
             entry_id SERIAL PRIMARY KEY,
             data JSONB,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -115,10 +117,19 @@ def create_user_db():
         );
         """
         
+        
 
         userdb_engine = db.get_engine(bind='userdb')
         with userdb_engine.connect() as connection:
             connection.execute(text(create_table_sql_statement))
+            
+             # add example data to the table
+            example_data = {
+                "example_key": "example_value",
+                "description": "Thank you for using hackdb"
+            }
+
+            connection.execute(text(f'INSERT INTO "{physical_table_name}" (data) VALUES (:data)'), {"data": example_data})
             connection.commit()
 
         db.session.commit()
@@ -313,6 +324,21 @@ def get_user_db_tables(db_id):
         table_id = request.args.get('tableid')
         limit = request.args.get('limit')
         offset = request.args.get('offset')
+        sort = request.args.get('sort') # sort = {'column': 'name', 'direction': 'asc'}
+        
+        if sort:
+            sort_parts = sort.split(',')
+            column = sort_parts[0].strip()
+            direction = sort_parts[1].strip().lower() if len(sort_parts) > 1 else 'asc'
+            # Validate column and direction separately
+            if not re.match(r'^[a-zA-Z0-9_]+$', column):
+                return jsonify(message='Invalid sort column'), 400
+            if direction not in ['asc', 'desc']:
+                return jsonify(message='Invalid sort direction'), 400
+            sort = f'ORDER BY "{column}" {direction.upper()}'
+        else:
+            sort = ''
+        
         if not limit:
             limit = 50
         else: # Ensure limit is an integer so it wont spontaneously combust
@@ -334,7 +360,11 @@ def get_user_db_tables(db_id):
             if not table:
                 return jsonify(message='Table not found'), 404
 
-            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" LIMIT {limit} OFFSET {offset}"))
+            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" {sort} LIMIT {limit} OFFSET {offset}"))
+            if result is None:
+                return jsonify(message='No data found'), 404
+            if result.returns_rows is False:
+                return jsonify(message='No data found'), 404
             #idk this fixed it somehow
             rows = [r._asdict() for r in result]
             time_taken = time.time() - start_timestamp
@@ -382,8 +412,45 @@ def tokens():
         return jsonify(tokens=tokens), 200
 
     elif request.method == 'POST':
-        # Handle POST request
-        return jsonify(message='POST request received'), 200
+        token = request.cookies.get('jwt')
+        if not token:
+            return jsonify(message='Unauthorized'), 401
+        try:
+            payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify(message='Token expired'), 401
+        except jwt.InvalidTokenError:
+            return jsonify(message='Invalid token'), 401
+        except Exception as e:
+            logging.error(f"Error decoding JWT: {e}")
+            return jsonify(message='Invalid token: Unknown error'), 401
+        
+        user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+        
+        if not user:
+            return jsonify(message='User not found'), 404
+        
+        data = request.get_json()
+        if not data or 'name' not in data or 'dbid' not in data:
+            return jsonify(message='Invalid request: "name" and "dbid" are required'), 400
+        
+        dbid = data['dbid']
+        selected_db = db.session.query(Databases).filter_by(id=dbid, owner=user.id).first()
+        
+        if not selected_db:
+            return jsonify(message='Database not found'), 404
+        
+        new_token = Tokens(
+            name=data['name'],
+            key=jwt.encode({'user_id': user.id, 'db_id': dbid}, signing_secret, algorithm='HS256'),
+            userid=user.id,
+            dbid=dbid
+        )
+        
+        db.session.add(new_token)
+        db.session.commit()
+        
+        return jsonify(message='Token created successfully', token=new_token.key), 201
     elif request.method == 'DELETE':
         
         token = request.cookies.get('jwt')
@@ -453,4 +520,42 @@ def commit_user_db(db_id):
     
     for commit in commitlist:
         job = rq.enqueue('app.tasks.commit_change', commit, db_id, user.id)
-    return jsonify(message='Commit queued successfully'), 200
+        commit['job_id'] = job.id
+    return jsonify(message='Commit queued successfully', jobs=commitlist), 200
+
+
+
+@udb.route('/userdbs/poll', methods=['GET'])
+def poll_information():
+    """
+    poll for information about commit tasks (and more soon)
+    """
+    method = request.args.get('method')
+    
+    if method == 'commit_result':
+        """
+        Get how many of the commits have been processed and how many have succeeded/ failed
+        """
+        job_ids = request.args.getlist('job_ids')
+        if not job_ids:
+            return jsonify(message='Invalid request: "job_ids" is required'), 400
+        
+        results = []
+        for job_id in job_ids:
+            job = rq.get_job(job_id)
+            if job:
+                results.append({
+                    'job_id': job.id,
+                    'status': job.get_status(),
+                    'result': job.result
+                })
+            else:
+                results.append({
+                    'job_id': job_id,
+                    'status': 'not_found',
+                    'result': None
+                })
+        failed = any(result['status'] == 'failed' for result in results)
+        failed += any(result['result'] == 'failed' for result in results)
+        pending = any(result['status'] == 'queued' for result in results)
+        return jsonify(results=results, failed=failed, pending=pending, total=len(results)), 200

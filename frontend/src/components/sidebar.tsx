@@ -12,8 +12,9 @@ import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
-import { getDatabaseTables } from "@/lib/api";
+import { getDatabaseTables, getUsersDatabases } from "@/lib/api";
 import { useEditorContext } from "@/editorContext";
+import { DBSwitcher } from "./dbswitcher";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -44,7 +45,7 @@ function Sidebar() {
      );
 }
 
-function SquareIconButton({ icon, label, onClick, className }: { 
+export function SquareIconButton({ icon, label, onClick, className }: { 
     icon: React.ReactNode; 
     label: string; 
     onClick: () => void; 
@@ -71,7 +72,7 @@ function EditorSidebar() {
     const navigate = useNavigate();
     const { dbid } = useParams();
 
-    const { selectedTable, setSelectedTable, changes, tables, setTables } = useEditorContext();
+    const { selectedTable, setSelectedTable, changes, tables, setTables, databases, setDatabases } = useEditorContext();
 
 
 
@@ -92,7 +93,19 @@ function EditorSidebar() {
             }
         };
 
+        const fetchDatabases = async () => {
+            try {
+                let data = await getUsersDatabases();
+                setDatabases(data.databases);
+            } catch (error) {
+                console.error("Error fetching databases:", error);
+                setDatabases([]);
+            }
+        };
+
         fetchTables();
+        fetchDatabases();
+
     }, [dbid]);
 
 
@@ -102,10 +115,20 @@ function EditorSidebar() {
 
     return (
         <SidebarUI>
-            <SidebarHeader>
-
+            <SidebarHeader className="">
+                <DBSwitcher teams={
+                    databases.map((db) => ({
+                        id: db.id,
+                        name: db.name,
+                        logo: Database,
+                        tables: db.tables,
+                        size: db.size
+                    }))
+                }
+                defaultTeamID={dbid || "default"}
+                />
             </SidebarHeader>
-            <SidebarContent>
+            <SidebarContent className="mt-0">
                 <SidebarGroup>
 
                 </SidebarGroup>
@@ -135,7 +158,7 @@ function EditorSidebar() {
                 <div className="flex flex-row gap-1 items-start justify-start w-full">
 
                     <Tooltip>
-                        <TooltipTrigger asChild><Button variant="outline" className="w-fit h-auto aspect-square"><House /></Button></TooltipTrigger>
+                        <TooltipTrigger asChild><Button onClick={() => {window.location.href = "/home";}} variant="outline" className="w-fit h-auto aspect-square"><House /></Button></TooltipTrigger>
                         <TooltipContent>
                             <span>Exit</span>
                         </TooltipContent>

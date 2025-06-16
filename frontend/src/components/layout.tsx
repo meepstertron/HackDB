@@ -1,13 +1,13 @@
 import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
-import Sidebar, { EditorSidebar } from "./sidebar";
+import Sidebar, { EditorSidebar, SquareIconButton } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { Database, GitCommitVertical, Loader2, Plus, Trash2 } from "lucide-react"
+import { Check, Database, GitCommitVertical, ListRestart, Loader2, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "./ui/sidebar";
-import { r } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
+import { r, t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { Button } from "./ui/button";
 import { useEditorContext } from "@/editorContext";
 import { Input } from "./ui/input";
@@ -16,6 +16,7 @@ import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { commitChanges } from "@/lib/api";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
+import { constructWhereClause } from "@/pages/editor";
 
 function RootLayout({ children }: React.PropsWithChildren) {
     const { menuItems, setMenuItems, title, setTitle  } = useMenuBar();
@@ -49,7 +50,7 @@ function RootLayout({ children }: React.PropsWithChildren) {
 function EditorLayout({ children}: React.PropsWithChildren) {
   const { dbid } = useParams();
     // const [loading, setLoading] = useState(true);
-    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges } = useEditorContext();
+    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges, selectedTable, setData, setSelectedRows, addingNewColumn, setAddingNewColumn, setRefreshKey, failedToGetData } = useEditorContext();
 
     const handleCommit = () => {
         console.log("Commit changes");
@@ -62,6 +63,7 @@ function EditorLayout({ children}: React.PropsWithChildren) {
             .then((response) => {
                 if (response) {
                     console.log("Changes committed successfully:", response);
+                    toast.success("Changes committed successfully... Please give it a moment to reflect in db");
                 }
             })
             .catch((error) => {
@@ -86,16 +88,46 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                     <div className="flex flex-col flex-1">
                         
                         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white">
-                            <div>
+                            <div className="flex items-center gap-4">
                               <SidebarTrigger className="outline-1 outline-gray-300" />
-                              <Button variant="outline" className="ml-4"><Plus /> Add Row</Button>
-                            </div>
-                            {selectedRows.length > 0 && (
-                              <Button variant="destructive">
+                              <div className="flex items-center gap-2">
+                                <SquareIconButton icon={<Undo2 />} label="Undo" onClick={() => {}} className="h-9" />
+                                <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
+                              </div>
+
+                              {addingNewColumn ? <><Button variant="default" onClick={() => { setAddingNewColumn(false); }}><Check /> Save Changes</Button> <Button variant="ghost" size="sm" onClick={() => { setAddingNewColumn(false); }}><span>Cancel</span></Button></> : <Button variant="outline" onClick={() => { setAddingNewColumn(true); }}><Plus /> Add Row</Button>}
+
+                              {selectedRows.length > 0 && (
+                              <Button variant="destructive" onClick={() => {
+                                console.log("Delete selected rows:", selectedRows);
+
+                                // Find the rows to delete by their unique IDs
+                                const rowsToDelete = data.filter(row => selectedRows.includes(row.hiddenRowIDforFrontend));
+
+                                // Add a delete change for each row
+                                setChanges(prev => [
+                                    ...prev,
+                                    ...rowsToDelete.map(rowData => {
+                                        let whereClause = constructWhereClause(rowData);
+                                        delete whereClause.hiddenRowIDforFrontend;
+                                        return {
+                                            where: whereClause,
+                                            table: selectedTable,
+                                            type: "delete",
+                                            timestamp: new Date().toISOString(),
+                                        };
+                                    }),
+                                ]);
+
+                                // Remove the deleted rows from data
+                                setData(prev => prev.filter(row => !selectedRows.includes(row.hiddenRowIDforFrontend)));
+                                setSelectedRows([]); // Clear selected rows after deletion
+                            }}>
                                 <Trash2 />
-                                <span className="ml-2">Delete {selectedRows.length } Row{selectedRows.length == 1 ? "" : "s"}</span>
+                                <span className="ml-2">Delete {selectedRows.length} Row{selectedRows.length === 1 ? "" : "s"}</span>
                               </Button>
-                            )}
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 h-full">
                                 <span className="mx-3 text-xs text-muted-foreground" title={timetaken + "ms"} >{data.length} Rows - {timetaken.toFixed(2)}ms</span>
                                 <div className="flex items-center ">
@@ -119,6 +151,21 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                                     </Tooltip>
                                     <Button variant="outline" className="rounded-none rounded-r w-4" onClick={() => {setOffset(offset + limit)}}>{">"}</Button>
                                 </div>
+                                <SquareIconButton label="Refetch Data" onClick={() => {setRefreshKey(Date.now())
+                                  toast.loading("Refetching data...")
+                                  setTimeout(() => {
+                                    toast.dismiss();
+                                    if (!selectedTable) {
+                                        toast.error("No table selected");
+                                        return;
+                                    }
+                                    if (failedToGetData) {
+                                        toast.error("Failed to get data. Please try again.");
+                                        return;
+                                    }
+                                    toast.success("Refetched data successfully");
+                                  }, 1000)
+                                }} icon={<ListRestart />} className="h-9"/>
                                 <Button variant="outline" className="justify-center items-center" onClick={handleCommit}>
                                     <GitCommitVertical />
                                     <span className="ml-2">Commit</span>
@@ -127,7 +174,7 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                             </div>
                         </header>
                         
-                        <main className="flex-1 overflow-auto">
+                        <main className="flex-1 overflow-auto ">
                             {children}
                         </main>
                     </div>
