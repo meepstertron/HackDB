@@ -59,13 +59,15 @@ export const constructWhereClause = (row: any ) => { //give whole row as input!!
 function TableEditor() {
 
     const { dbid } = useParams();
-    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy } = useEditorContext();
+    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData } = useEditorContext();
 
 
     const [structure, setStructure] = useState<any[]>([]);
+    const [newRow, setNewRow] = useState<any>({});
 
 
-    const [failedToGetData, setFailedToGetData] = useState(false);
+    
+
 
 
     useEffect(() => {
@@ -88,7 +90,7 @@ function TableEditor() {
             }
         }
         fetchTableStructure();
-    },[selectedTable, dbid]);
+    },[selectedTable, dbid, refreshKey ]);
 
 
     useEffect(() => {
@@ -115,7 +117,7 @@ function TableEditor() {
             }
         }
         fetchTableData();
-    }, [selectedTable, dbid, limit, offset, sortBy]); 
+    }, [selectedTable, dbid, limit, offset, sortBy, refreshKey]); 
 
 
 
@@ -353,6 +355,48 @@ function TableEditor() {
                     </tr>
                 </thead>
                 <tbody>
+                {addingNewColumn && (
+                    <tr className="border-t border-gray-300">
+                        <td className="w-6 border border-gray-300 p-0.5 text-center">
+                            <input type="checkbox" className="w-3 h-3" />
+                        </td>
+                        {structure.map((column, colIndex) => (
+                            <td key={column.name || colIndex} className="border border-gray-300 ">
+                                <Popover>
+                                    <PopoverTrigger className="p-0 ">
+                                        <div className="w-full h-full bg-muted cursor-pointer p-1 min-h-[24px]">
+                                            {column.default ? "DEFAULT" : column.nullable ? "NULL" : "!EMPTY!"} 
+                                        </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="p-0 min-w-fit w-100">
+                                        <div className="p-0">
+                                            <textarea className="w-full h-full p-1 min-h-[24px] resize-none" placeholder="Content Goes here"></textarea>
+                                            <hr className="my-1 border-dashed border-gray-300" />
+                                            <div className="flex items-center justify-between p-1">
+                                                <div>
+                                                    <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: null })}>
+                                                        Set NULL
+                                                    </Button>
+
+                                                    {column.default ? <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: column.defaultValue ?? "" })}>
+                                                        Set Default
+                                                    </Button> : null}
+                                                </div><div >
+                                                    <Button size="sm" variant="outline">
+                                                        Cancel
+                                                    </Button>
+                                                    <Button size="sm" variant="default">
+                                                        Submit
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </td>
+                        ))}
+                    </tr>
+                )}
                 {data.map((row, index) => (
                     <tr key={row.hiddenRowIDforFrontend !== undefined ? row.hiddenRowIDforFrontend : `${offset}-${index}`} className="border-t border-gray-300">
                         <td className="w-6 border border-gray-300 p-0.5 text-center">

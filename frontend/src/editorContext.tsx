@@ -1,3 +1,4 @@
+import { Database } from 'lucide-react';
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import React from 'react';
 
@@ -33,6 +34,14 @@ type EditorContextType = {
     setContentFilter?: (filter: string) => void;
     sortBy?: {column: string, direction: 'asc' | 'desc'} ;
     setSortBy: (sort: {column: string, direction: 'asc' | 'desc'}) => void;
+    addingNewColumn: boolean;
+    setAddingNewColumn: (adding: boolean) => void;
+    refreshKey: number;
+    setRefreshKey: (key: number) => void;
+    failedToGetData: boolean;
+    setFailedToGetData: (failed: boolean) => void;
+    databases: Array<{id: string, name: string, tables: number, size: string}>;
+    setDatabases: (databases: Array<{id: string, name: string, tables: number, size: string}>) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -51,7 +60,12 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [timetaken, setTimetaken] = useState<number>(0);
     const [contentFilter, setContentFilter] = useState<string>('');
     const [sortBy, setSortBy] = useState<{column: string, direction: 'asc' | 'desc'} >({ column: '', direction: 'asc' });
-
+    const [addingNewColumn, setAddingNewColumn] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [failedToGetData, setFailedToGetData] = useState(false);
+    const [databases, setDatabases] = useState(                    [
+                        { id: "1", name: "Loading", tables: 0, size: "Loading" }
+                    ]);
     const hasDismissedLimitAlert = useRef(false);
 
     useEffect(() => {
@@ -65,7 +79,7 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     }, [limit]);
 
     return (
-        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter, sortBy, setSortBy }}>
+        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData, databases, setDatabases }}>
             {children}
         </EditorContext.Provider>
     )

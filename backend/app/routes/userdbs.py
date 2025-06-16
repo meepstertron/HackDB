@@ -43,6 +43,8 @@ def get_user_dbs():
         currentdb = {}
         currentdb["id"] = database.id 
         currentdb["name"] = database.name 
+        currentdb["tables"] = db.session.query(Usertables).filter_by(db=database.id).count()
+        currentdb["size"] = "N/A"
         databases.append(currentdb)
         
     return jsonify(databases=databases), 200

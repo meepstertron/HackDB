@@ -2,12 +2,12 @@ import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
 import Sidebar, { EditorSidebar, SquareIconButton } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { Database, GitCommitVertical, Loader2, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
+import { Check, Database, GitCommitVertical, ListRestart, Loader2, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "./ui/sidebar";
-import { r } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
+import { r, t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { Button } from "./ui/button";
 import { useEditorContext } from "@/editorContext";
 import { Input } from "./ui/input";
@@ -50,7 +50,7 @@ function RootLayout({ children }: React.PropsWithChildren) {
 function EditorLayout({ children}: React.PropsWithChildren) {
   const { dbid } = useParams();
     // const [loading, setLoading] = useState(true);
-    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges, selectedTable, setData, setSelectedRows } = useEditorContext();
+    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges, selectedTable, setData, setSelectedRows, addingNewColumn, setAddingNewColumn, setRefreshKey, failedToGetData } = useEditorContext();
 
     const handleCommit = () => {
         console.log("Commit changes");
@@ -94,7 +94,9 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                                 <SquareIconButton icon={<Undo2 />} label="Undo" onClick={() => {}} className="h-9" />
                                 <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
                               </div>
-                              <Button variant="outline"><Plus /> Add Row</Button>
+
+                              {addingNewColumn ? <><Button variant="default" onClick={() => { setAddingNewColumn(false); }}><Check /> Save Changes</Button> <Button variant="ghost" size="sm" onClick={() => { setAddingNewColumn(false); }}><span>Cancel</span></Button></> : <Button variant="outline" onClick={() => { setAddingNewColumn(true); }}><Plus /> Add Row</Button>}
+
                               {selectedRows.length > 0 && (
                               <Button variant="destructive" onClick={() => {
                                 console.log("Delete selected rows:", selectedRows);
@@ -149,6 +151,21 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                                     </Tooltip>
                                     <Button variant="outline" className="rounded-none rounded-r w-4" onClick={() => {setOffset(offset + limit)}}>{">"}</Button>
                                 </div>
+                                <SquareIconButton label="Refetch Data" onClick={() => {setRefreshKey(Date.now())
+                                  toast.loading("Refetching data...")
+                                  setTimeout(() => {
+                                    toast.dismiss();
+                                    if (!selectedTable) {
+                                        toast.error("No table selected");
+                                        return;
+                                    }
+                                    if (failedToGetData) {
+                                        toast.error("Failed to get data. Please try again.");
+                                        return;
+                                    }
+                                    toast.success("Refetched data successfully");
+                                  }, 1000)
+                                }} icon={<ListRestart />} className="h-9"/>
                                 <Button variant="outline" className="justify-center items-center" onClick={handleCommit}>
                                     <GitCommitVertical />
                                     <span className="ml-2">Commit</span>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { ArrowRight, ChevronsUpDown, Plus } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -18,18 +18,32 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { href } from "react-router-dom"
 
 export function DBSwitcher({
   teams,
+  defaultTeamID,
 }: {
+  defaultTeamID?: string
   teams: {
+    id: string
     name: string
-    logo: React.ElementType
-    plan: string
+    logo: React.ElementType,
+    tables: number
+    size: string // e.g., "1GB"
   }[]
 }) {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
+  const [activeTeam, setActiveTeam] = React.useState(
+    teams.find((team) => team.id === defaultTeamID) || teams[0]
+  )
+
+  React.useEffect(() => {
+    const team = teams.find((team) => team.id === defaultTeamID)
+    if (team) {
+      setActiveTeam(team)
+    }
+  }, [teams, defaultTeamID])
 
   if (!activeTeam) {
     return null
@@ -49,7 +63,7 @@ export function DBSwitcher({
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">{activeTeam.plan}</span>
+                <span className="truncate text-xs">{activeTeam.tables} tables - {activeTeam.size}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -66,7 +80,9 @@ export function DBSwitcher({
             {teams.map((team, index) => (
               <DropdownMenuItem
                 key={team.name}
-                onClick={() => setActiveTeam(team)}
+                onClick={() => {setActiveTeam(team)
+                  window.location.href = `/editor/${team.id}`
+                }}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border">
@@ -81,7 +97,7 @@ export function DBSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="text-muted-foreground font-medium">Add Database</div>
+              <div className="text-muted-foreground font-medium flex items-center " onClick={() => {window.location.href="/databases/create"}}>Add Database <ArrowRight className="size-4" /></div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
