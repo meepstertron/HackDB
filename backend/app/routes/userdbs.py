@@ -1,3 +1,4 @@
+import json
 import time
 from flask import Blueprint, jsonify, request
 import jwt
@@ -129,7 +130,10 @@ def create_user_db():
                 "description": "Thank you for using hackdb"
             }
 
-            connection.execute(text(f'INSERT INTO "{physical_table_name}" (data) VALUES (:data)'), {"data": example_data})
+            connection.execute(
+                text(f'INSERT INTO "{physical_table_name}" (data) VALUES (:data)'),
+                {"data": json.dumps(example_data)}
+            )
             connection.commit()
 
         db.session.commit()
