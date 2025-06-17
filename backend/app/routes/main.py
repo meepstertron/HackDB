@@ -9,7 +9,7 @@ import jwt
 client_id = os.environ["SLACK_CLIENT_ID"]
 client_secret = os.environ["SLACK_CLIENT_SECRET"]
 signing_secret = os.environ["SLACK_SIGNING_SECRET"]
-state = str(uuid4())
+state = "hackclub-" + str(uuid4())
 
 oauth_scope = ", ".join(["identity.basic", "identity.email"])
 
@@ -47,9 +47,15 @@ def post_install():
 
     client = WebClient()
 
-    if True:
+    if received_state.startswith("hackclub-"):
         response = client.oauth_v2_access(
             client_id=client_id,
+            client_secret=client_secret,
+            code=auth_code
+        )
+    elif received_state.startswith("cli-"):
+        response = client.oauth_v2_access(
+            client_id=client,
             client_secret=client_secret,
             code=auth_code
         )
@@ -82,11 +88,14 @@ def post_install():
                 db.session.commit()
 
             
-            jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
+            
             response = make_response()
             jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
             response = make_response(redirect("https://hackdb.hexagonical.ch/home"))
             response.set_cookie("jwt", jwt_token, httponly=True, secure=True, samesite="None")
+            if received_state.startswith("cli_"):
+                jwt_token =  jwt.encode()
+                return
             return response
     else:
         return "Error: Auth Failed"
@@ -117,3 +126,24 @@ def me():
         return jsonify(message="Token expired"), 401
     except jwt.InvalidTokenError:
         return jsonify(message="Invalid token"), 401
+    
+
+@main.route("/api/cli/slackauth", methods=["GET"])
+def slack_auth():
+    instance_id = request.args.get("instanceid")
+    if not instance_id:
+        return jsonify(message="Instance ID is required"), 400
+
+    # Here you would typically store the instance ID and redirect the user to Slack for authentication
+    # For now, we will just return a success message
+    return jsonify(message=f"Redirecting to Slack OAUTH for instance {instance_id}..."), 200
+
+
+@main.route("/api/cli/polllogin", methods=["GET"])
+def poll_cli_login():
+    instance_id = request.args.get("instanceid")
+
+    # check if user has filled out slack oauth by checking db (instances.hasVerified or .slackID)
+
+    jwt_token = jwt.encode({"instance_id": str(instance_id)}, signing_secret, algorithm="HS256")
+    return {"instanceid": instance_id, "token":jwt_token }, 200

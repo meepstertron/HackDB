@@ -84,3 +84,6 @@ class Usertables(Base):
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))
 
     databases: Mapped['Databases'] = relationship('Databases', back_populates='usertables')
+
+class SDKInstances(Base):
+    

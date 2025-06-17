@@ -1,5 +1,21 @@
 import argparse
+import requests
+import uuid
+import os
+import json
 
+config_path = os.path.expanduser("~/.hackdb/config.json")
+config = {}
+
+if os.path.exists(config_path):
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+    except Exception:
+        raise Warning("Config file empty or nonexistent")
+        config = {}
+
+config["instanceid"] = uuid.uuid4()
 
 def login(args):
     print("HackDB " + "indev1" + " - CLI")
@@ -11,7 +27,7 @@ def login(args):
  """)
     
     choice = input("Enter your choice (1-4): ")
-    config = {}
+    
 
     if choice == '1':
 
@@ -23,13 +39,26 @@ def login(args):
         config['password'] = password
     elif choice == '2':
         token = input("Enter your SDK Token: ")
-        print(f"Logging in with SDK Token: {token}")
+        if not token.startswith("hkdb_tkn_"):
+            print("Invalid SDK Token format. Exiting...")
+            exit(1)
+        
+        print(f"Logging in with SDK Token: {"*"*token.count()}")
+        
         config['method'] = "sdk_token"
         config['token'] = token
     elif choice == '3':
         print("Redirecting to Slack OAUTH...")
         print("Please follow the instructions in your browser to complete the Slack OAUTH process.")
         print("After completing the process, return here to continue.")
+        #open page with redirect to hackdb.hexagonical.ch/api/cli/slackauth?instanceid={config.instanceid}
+        
+        shouldPoll = True # value to tell it if it should poll server for oauth data
+        while shouldPoll:
+            print("Polling server...")
+            result = requests.get
+
+        
 
         config['method'] = "slack_oauth"
     elif choice == '4':
@@ -37,8 +66,11 @@ def login(args):
         print("Please follow the instructions in your browser to complete the Hexagonical Auth process.")
         print("After completing the process, return here to continue.")
         config['method'] = "hexagonical_auth"
+    
     else:
         print("Invalid choice. Please try again.")
+    #save config file
+    open("~/.hackdb/config.json", mode="rw") 
 
 def status(args):
     print("Status: OK")
@@ -57,6 +89,9 @@ def main():
     # hackdb status
     parser_status = subparsers.add_parser('status', help='Show status')
     parser_status.set_defaults(func=status)
+
+    # hackdb credits
+    parser_credits = subparsers.add_parser('credits', help='Show user credits')
 
     args = parser.parse_args()
     args.func(args)
