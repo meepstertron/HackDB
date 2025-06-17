@@ -1,31 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+import { useAuth } from "./components/authContext";
+import { Card, CardHeader } from "./components/ui/card"
+
 
 
 function App() {
-  const [count, setCount] = useState(0)
-
+  const { user } = useAuth()
+  console.log(user);
+  const greetings = ["Hi there, ", "Hello World! ", "Welcome, ", "Greetings, ", "Salutations, ", "Nice to see you, "];
   return (
-    <>
-      <div>
-
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <h1 className="text-2xl ">{greetings[Math.floor(Math.random() * greetings.length)]}{user?.name ? <span>{user.username}</span> : null} 👋</h1>
+      <div className='flex flex-row'>
+          <Card>
+            <CardHeader></CardHeader>
+          </Card>
+        </div>
+    </div>
   )
 }
 

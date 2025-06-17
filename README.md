@@ -46,4 +46,6 @@ AI (Artificial inteligence) has been used in this repo and its code (copilot, ge
 Availible commands:
 - `hackdb status` - gets the status of the instance
 - `hackdb databases` - returns a list of your databases and their ids
-- `hackdb drop <database id>` - irreversibely drops 
+- `hackdb drop <database id>` - irreversibely drops a database
+- `hackdb table list -d <database name>`
+- `hackdb table ` 

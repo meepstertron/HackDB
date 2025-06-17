@@ -46,7 +46,7 @@ export function DBPage() {
             navigate(`/databases/${database.id}`)
           )}
           key={database.id}
-          className="overflow-hidden border shadow-none border-border/40 transition-all hover:border-border/80"
+          className="overflow-hidden border shadow-none border-border/40 transition-all hover:border-border/80 cursor-pointer"
         >
             <CardHeader>
                 <div className="w-full text-right h-full">

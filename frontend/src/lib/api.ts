@@ -225,3 +225,33 @@ export function createDatabase(name: string) {
             return null
         });
 }
+
+
+
+export function tableAction(db_id: string, table_id: string, action: string, data?: any) {
+    const fetchOptions: RequestInit = {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+
+    
+    const bodyData = { ...(data || {}), tableid: table_id };
+    fetchOptions.body = JSON.stringify(bodyData);
+
+    return fetch(API_URL + "/userdbs/" + db_id + "/tables?type=" + action, fetchOptions)
+        .then(async (response) => {
+            if (response.status === 200) {
+                const jsonData = await response.json();
+                return jsonData;
+            } else {
+                throw new Error("Failed to perform table action");
+            }
+        })
+        .catch((error) => {
+            console.error("Error performing table action:", error);
+            return null;
+        });
+}

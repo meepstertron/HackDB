@@ -1,4 +1,4 @@
-import { Bug, Database, Hash, House, PercentDiamondIcon, Plus, Settings2, Table2, Workflow } from "lucide-react";
+import { Bug, Copy, Database, Edit, Hash, House, PercentDiamondIcon, Plus, ScissorsLineDashed, Settings2, Table2, Trash2, Workflow } from "lucide-react";
 // use react router dom to navigate between pages
 import { data, useNavigate, useParams } from "react-router-dom";
 import React, { useState, useEffect } from "react";
@@ -12,9 +12,11 @@ import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
-import { getDatabaseTables, getUsersDatabases } from "@/lib/api";
+import { getDatabaseTables, getUsersDatabases, tableAction } from "@/lib/api";
 import { useEditorContext } from "@/editorContext";
 import { DBSwitcher } from "./dbswitcher";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "./ui/context-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -48,13 +50,13 @@ function Sidebar() {
 export function SquareIconButton({ icon, label, onClick, className }: { 
     icon: React.ReactNode; 
     label: string; 
-    onClick: () => void; 
+    onClick?: () => void; 
     className?: string; 
 }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button variant="outline" className={cn("w-fit h-auto aspect-square", className)} onClick={onClick}>
+                <Button type="button" variant="outline" className={cn("w-fit h-auto aspect-square", className)} onClick={onClick}>
                     {icon}
                 </Button>
             </TooltipTrigger>
@@ -71,6 +73,7 @@ function EditorSidebar() {
     // Remove unused navigate variable
     const navigate = useNavigate();
     const { dbid } = useParams();
+    const [newTableName, setNewTableName] = useState("");
 
     const { selectedTable, setSelectedTable, changes, tables, setTables, databases, setDatabases } = useEditorContext();
 
@@ -135,18 +138,52 @@ function EditorSidebar() {
                 <SidebarGroup>
                     <div className="flex gap-1">
                         <Input placeholder="Search tables..." />
-                        <SquareIconButton icon={<Plus />} label="Add Table" onClick={() => {}} className="h-9" />
-                    </div>
+                        <Popover>
+                                <PopoverTrigger asChild>
+                                    {/* <SquareIconButton icon={<Plus />} label="Add Table"  className="h-9" /> */}
+                                    <Button variant="outline" className=" w-fit h-9 aspect-square" >
+                                        <Plus />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-72">
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        // Handle create table logic here
+                                    }}>
+                                        <span>New Table</span>
+                                        <div className="flex flex-col gap-2 mt-2">
+                                            <Input placeholder="Table Name" type="text" />
+                                            <Button variant="outline" className="w-full" type="submit" >Create</Button>
+                                        </div>
+                                    </form>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     <ScrollArea>
                         {
                             tables && tables.length > 0 ? tables.map((table) => (
-                                <Button key={table.id} variant="ghost" className={"w-full" + (selectedTable === table.id ? " bg-muted" : "")} onClick={() => { setSelectedTable(table.id); }}>
-                                    <div className="flex flex-row gap-2 items-center justify-start w-full">
-                                        <Table2 />
-                                        <span>{table.name}</span>
-                                    </div>
-                                    <span className="text-xs text-muted-foreground font-normal">{table.rows}</span>
-                                </Button>
+                                <ContextMenu key={table.id}>
+                                    <ContextMenuTrigger>
+                                        <Button variant="ghost" className={"w-full" + (selectedTable === table.id ? " bg-muted" : "")} onClick={() => { setSelectedTable(table.id); }}>
+                                            <div className="flex flex-row gap-2 items-center justify-start w-full">
+                                                <Table2 />
+                                                <span>{table.name}</span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground font-normal">{table.rows}</span>
+                                        </Button>
+
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <div className="flex items-center p-2"><Table2 size="16" /><span className="text-sm font-sans px-2">{table.name}</span></div>
+                                        <hr className="mx-2 my-1"/>
+                                        <ContextMenuItem><Plus />New</ContextMenuItem>
+                                        <ContextMenuItem onClick={() => {}}><Edit />Rename</ContextMenuItem>
+                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.duplicate')}}><Copy />Duplicate</ContextMenuItem>
+                                        <hr className="mx-2 my-1"/>
+                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.truncate')}}><ScissorsLineDashed />Truncate</ContextMenuItem>
+                                        <ContextMenuItem className="text-destructive" onClick={() => {tableAction(dbid || "", table.id, 'action.delete')}}><Trash2 className="text-destructive"/>Drop</ContextMenuItem>
+                                    </ContextMenuContent>
+                                </ContextMenu>
                             )) : (
                                 <div className="p-2 text-center text-muted-foreground">No tables found</div>
                             )

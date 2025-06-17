@@ -220,7 +220,7 @@ def get_user_db(db_id):
     return jsonify(database=return_payload), 200
 
 
-@udb.route('/userdbs/<uuid:db_id>/tables', methods=['GET'])
+@udb.route('/userdbs/<uuid:db_id>/tables', methods=['GET', 'POST'])
 def get_user_db_tables(db_id):
     """
     get all tables in a db and optionally get data from a table
@@ -247,136 +247,248 @@ def get_user_db_tables(db_id):
     selected_db = db.session.query(Databases).filter_by(id=db_id, owner=user.id).first()
     if not selected_db:
         return jsonify(message='Database not found'), 404
-    
-    tables = db.session.query(Usertables).filter_by(db=selected_db.id).all()
-    
     request_type = request.args.get('type')
-    if request_type == 'lite':
+    tables = db.session.query(Usertables).filter_by(db=selected_db.id).all()
+    if request.method == 'GET':
         
-        payload = []
-        userdb_engine = db.get_engine(bind='userdb')
-        with userdb_engine.connect() as connection:
-            for table in tables:
+        if request_type == 'lite':
+            
+            payload = []
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                for table in tables:
 
-                rows = connection.execute(text(f'SELECT COUNT(*) FROM "{table.name}_{str(table.id).replace("-", "_")}"')).scalar()
+                    rows = connection.execute(text(f'SELECT COUNT(*) FROM "{table.name}_{str(table.id).replace("-", "_")}"')).scalar()
 
-                returntable = {
-                    "id": str(table.id),
-                    "name": table.name,
-                    "created_at": table.created_at.isoformat() if table.created_at else None,
-                    "rows": rows,
-                }
-                payload.append(returntable)
-            return jsonify(tables=payload), 200
-        
-    if request_type == 'struct':
-        #         {
-        #     name: "id",
-        #     type: "int",
-        #     primary: true,
-        #     autoIncrement: true,
-        #     nullable: false,
-        #     default: null,
-        #     unique: true,
+                    returntable = {
+                        "id": str(table.id),
+                        "name": table.name,
+                        "created_at": table.created_at.isoformat() if table.created_at else None,
+                        "rows": rows,
+                    }
+                    payload.append(returntable)
+                return jsonify(tables=payload), 200
             
-        # },
-        # {
-        #     name: "name",
-        #     type: "text",
-        #     primary: false,
-        #     autoIncrement: false,
-        #     nullable: false,
-        #     default: null,
-        #     unique: false
-        # }
-        payload = []
-        
-        table_id = request.args.get('tableid')
-        
-        userdb_engine = db.get_engine(bind='userdb')
-        with userdb_engine.connect() as connection:
-            
-            table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
-            if not table:
-                return jsonify(message='Table not found'), 404
-            
-            result = connection.execute(text(f"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = '{table.name}_{str(table.id).replace('-', '_')}'"))
-            
-            for row in result:
-                column_name = row[0]
-                data_type = row[1]
-                is_nullable = row[2]
-                column_default = row[3]
+        if request_type == 'struct':
+            #         {
+            #     name: "id",
+            #     type: "int",
+            #     primary: true,
+            #     autoIncrement: true,
+            #     nullable: false,
+            #     default: null,
+            #     unique: true,
                 
-                # Check if the column is a primary key
-                primary_key_result = connection.execute(text(f"SELECT kcu.column_name FROM information_schema.table_constraints tco JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tco.constraint_name WHERE tco.table_name = '{table.name}_{str(table.id).replace('-', '_')}' AND tco.constraint_type = 'PRIMARY KEY'"))
-                primary_key_columns = [col[0] for col in primary_key_result.fetchall()]
-                
-                payload.append({
-                    "name": column_name,
-                    "type": data_type,
-                    "primary": column_name in primary_key_columns,
-                    "autoIncrement": False,  
-                    "nullable": is_nullable == 'YES',
-                    "default": column_default,
-                    "unique": False 
-                })
-
-
-            return jsonify(payload), 200
-    elif request_type == 'data':
-        table_id = request.args.get('tableid')
-        limit = request.args.get('limit')
-        offset = request.args.get('offset')
-        sort = request.args.get('sort') # sort = {'column': 'name', 'direction': 'asc'}
-        
-        if sort:
-            sort_parts = sort.split(',')
-            column = sort_parts[0].strip()
-            direction = sort_parts[1].strip().lower() if len(sort_parts) > 1 else 'asc'
-            # Validate column and direction separately
-            if not re.match(r'^[a-zA-Z0-9_]+$', column):
-                return jsonify(message='Invalid sort column'), 400
-            if direction not in ['asc', 'desc']:
-                return jsonify(message='Invalid sort direction'), 400
-            sort = f'ORDER BY "{column}" {direction.upper()}'
-        else:
-            sort = ''
-        
-        if not limit:
-            limit = 50
-        else: # Ensure limit is an integer so it wont spontaneously combust
-            limit = int(limit)
-        if not offset:
-            offset = 0
-        page = request.args.get('page')
-        if not page:
-            page = 1
-        else:
-            page = int(page)
-        if page > 1:
-            offset = (page - 1) * limit
+            # },
+            # {
+            #     name: "name",
+            #     type: "text",
+            #     primary: false,
+            #     autoIncrement: false,
+            #     nullable: false,
+            #     default: null,
+            #     unique: false
+            # }
+            payload = []
             
-        userdb_engine = db.get_engine(bind='userdb')
-        with userdb_engine.connect() as connection:
-            start_timestamp = time.time()
-            table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
-            if not table:
-                return jsonify(message='Table not found'), 404
+            table_id = request.args.get('tableid')
+            
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+                
+                result = connection.execute(text(f"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = '{table.name}_{str(table.id).replace('-', '_')}'"))
+                
+                for row in result:
+                    column_name = row[0]
+                    data_type = row[1]
+                    is_nullable = row[2]
+                    column_default = row[3]
+                    
+                    # Check if the column is a primary key
+                    primary_key_result = connection.execute(text(f"SELECT kcu.column_name FROM information_schema.table_constraints tco JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tco.constraint_name WHERE tco.table_name = '{table.name}_{str(table.id).replace('-', '_')}' AND tco.constraint_type = 'PRIMARY KEY'"))
+                    primary_key_columns = [col[0] for col in primary_key_result.fetchall()]
+                    
+                    payload.append({
+                        "name": column_name,
+                        "type": data_type,
+                        "primary": column_name in primary_key_columns,
+                        "autoIncrement": False,  
+                        "nullable": is_nullable == 'YES',
+                        "default": column_default,
+                        "unique": False 
+                    })
 
-            result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" {sort} LIMIT {limit} OFFSET {offset}"))
-            if result is None:
-                return jsonify(message='No data found'), 404
-            if result.returns_rows is False:
-                return jsonify(message='No data found'), 404
-            #idk this fixed it somehow
-            rows = [r._asdict() for r in result]
-            time_taken = time.time() - start_timestamp
-            time_taken = time_taken * 1000  # Convert to milliseconds
-            logging.info(f"Query took {time_taken} seconds")
-            return jsonify(rows=rows, time_taken=time_taken), 200
-    else:
-        return(jsonify(message='Invalid request: "type" must be in range value'), 400)
+
+                return jsonify(payload), 200
+        elif request_type == 'data':
+            table_id = request.args.get('tableid')
+            limit = request.args.get('limit')
+            offset = request.args.get('offset')
+            sort = request.args.get('sort') # sort = {'column': 'name', 'direction': 'asc'}
+            
+            if sort:
+                sort_parts = sort.split(',')
+                column = sort_parts[0].strip()
+                direction = sort_parts[1].strip().lower() if len(sort_parts) > 1 else 'asc'
+                # Validate column and direction separately
+                if not re.match(r'^[a-zA-Z0-9_]+$', column):
+                    return jsonify(message='Invalid sort column'), 400
+                if direction not in ['asc', 'desc']:
+                    return jsonify(message='Invalid sort direction'), 400
+                sort = f'ORDER BY "{column}" {direction.upper()}'
+            else:
+                sort = ''
+            
+            if not limit:
+                limit = 50
+            else: # Ensure limit is an integer so it wont spontaneously combust
+                limit = int(limit)
+            if not offset:
+                offset = 0
+            page = request.args.get('page')
+            if not page:
+                page = 1
+            else:
+                page = int(page)
+            if page > 1:
+                offset = (page - 1) * limit
+                
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                start_timestamp = time.time()
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+
+                result = connection.execute(text(f"SELECT * FROM \"{table.name}_{str(table.id).replace('-', '_')}\" {sort} LIMIT {limit} OFFSET {offset}"))
+                if result is None:
+                    return jsonify(message='No data found'), 404
+                if result.returns_rows is False:
+                    return jsonify(message='No data found'), 404
+                #idk this fixed it somehow
+                rows = [r._asdict() for r in result]
+                time_taken = time.time() - start_timestamp
+                time_taken = time_taken * 1000  # convert to milliseconds
+                logging.info(f"Query took {time_taken} seconds")
+                return jsonify(rows=rows, time_taken=time_taken), 200
+        else:
+            return(jsonify(message='Invalid request: "type" must be in range value'), 400)
+    elif request.method == 'POST':
+        if request_type == 'action.rename':
+            """
+            Rename a table
+            """
+            data = request.get_json()
+            if not data or 'tableid' not in data or 'newname' not in data:
+                return jsonify(message='Invalid request: "tableid" and "newname" are required'), 400
+            
+            table_id = data['tableid']
+            new_name = data['newname']
+            
+            if not re.match(r'^[a-zA-Z0-9_]+$', new_name):
+                return jsonify(message='Invalid table name'), 400
+            
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+                
+                # rename the table in the database
+                old_physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                new_physical_name = f"{new_name}_{str(table.id).replace('-', '_')}"
+                
+                connection.execute(text(f'ALTER TABLE "{old_physical_name}" RENAME TO "{new_physical_name}"'))
+                
+                # Update the metadata in the database !!!! IMPORTANTE BECAUSE IT WILL STILL SHOW IN THE UI
+                table.name = new_name
+                db.session.commit()
+                
+                return jsonify(message='Table renamed successfully', new_physical_name=new_physical_name), 200
+            
+        elif request_type == 'action.delete':
+            """
+            Delete a table
+            """
+            data = request.get_json()
+            if not data or 'tableid' not in data:
+                return jsonify(message='Invalid request: "tableid" is required'), 400
+
+            table_id = data['tableid']
+
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+
+                
+                physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                connection.execute(text(f'DROP TABLE IF EXISTS "{physical_name}"'))
+                # delete metadataa
+                db.session.delete(table)
+                db.session.commit()
+
+                return jsonify(message='Table deleted successfully'), 200
+            
+        elif request_type == 'action.truncate':
+            """"
+            Truncate a table aka delete * but faster and the table stays
+            """
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+
+                physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                connection.execute(text(f'TRUNCATE TABLE "{physical_name}"'))
+                return jsonify(message='Table truncated successfully'), 200
+            
+        elif request_type == 'action.duplicate':
+            """
+            Duplicate a table
+            """
+            data = request.get_json()
+            if not data or 'tableid' not in data:
+                return jsonify(message='Invalid request: "tableid" is required'), 400
+
+            table_id = data['tableid']
+
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
+                if not table:
+                    return jsonify(message='Table not found'), 404
+
+                new_usertable_metadata = Usertables(
+                    name=f"{table.name}_copy",
+                    db=selected_db.id
+                )
+                db.session.add(new_usertable_metadata)
+                db.session.flush()  # get new_usertable_metadata.id
+
+
+                sanitized_logical_name = re.sub(r'[^a-zA-Z0-9_]', '', new_usertable_metadata.name)
+                uuid_part = str(new_usertable_metadata.id).replace('-', '_')
+                new_physical_name = f"{sanitized_logical_name}_{uuid_part}"
+                old_physical_name = f"{re.sub(r'[^a-zA-Z0-9_]', '', table.name)}_{str(table.id).replace('-', '_')}"
+
+                # Duplicate the table structure and data
+                connection.execute(text(f'CREATE TABLE "{new_physical_name}" (LIKE "{old_physical_name}" INCLUDING ALL)'))
+                connection.execute(text(f'INSERT INTO "{new_physical_name}" SELECT * FROM "{old_physical_name}"'))
+
+                db.session.commit()
+
+                return jsonify(
+                    message='Table duplicated successfully',
+                    new_table_id=str(new_usertable_metadata.id),
+                    new_physical_name=new_physical_name
+                ), 201
 
 
 @udb.route('/userdbs/tokens', methods=['GET', 'POST', 'DELETE'])
