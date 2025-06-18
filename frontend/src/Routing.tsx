@@ -10,6 +10,7 @@ import LoginPage from "./pages/login";
 import DatabaseCreationPage from "./pages/createdb";
 import TableEditor from "./pages/editor";
 import TokenPage from "./pages/tokens";
+import FlowEditor from "./pages/FlowEditor";
 
 
 
@@ -73,6 +74,9 @@ function Routing() {
               <TokenPage />
             </RootLayout>
           }/>
+          <Route path="/flow" element={
+            <FlowEditor />
+          } />
           <Route path="*" element={
 
               <p>404 Not Found</p>

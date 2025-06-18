@@ -1,4 +1,4 @@
-import { Bug, Copy, Database, Edit, Hash, House, PercentDiamondIcon, Plus, ScissorsLineDashed, Settings2, Table2, Trash2, Workflow } from "lucide-react";
+import { Bug, Check, Copy, Database, Edit, Hash, House, PercentDiamondIcon, Plus, ScissorsLineDashed, Settings2, Table2, Trash2, Workflow } from "lucide-react";
 // use react router dom to navigate between pages
 import { data, useNavigate, useParams } from "react-router-dom";
 import React, { useState, useEffect } from "react";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { getDatabaseTables, getUsersDatabases, tableAction } from "@/lib/api";
 import { useEditorContext } from "@/editorContext";
 import { DBSwitcher } from "./dbswitcher";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "./ui/context-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "./ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 function Sidebar() {
@@ -75,7 +75,7 @@ function EditorSidebar() {
     const { dbid } = useParams();
     const [newTableName, setNewTableName] = useState("");
 
-    const { selectedTable, setSelectedTable, changes, tables, setTables, databases, setDatabases } = useEditorContext();
+    const { selectedTable, setSelectedTable, changes, tables, setTables, databases, setDatabases, setRefreshKey, refreshKey } = useEditorContext();
 
 
 
@@ -109,7 +109,7 @@ function EditorSidebar() {
         fetchTables();
         fetchDatabases();
 
-    }, [dbid]);
+    }, [dbid, refreshKey]);
 
 
 
@@ -177,11 +177,36 @@ function EditorSidebar() {
                                         <div className="flex items-center p-2"><Table2 size="16" /><span className="text-sm font-sans px-2">{table.name}</span></div>
                                         <hr className="mx-2 my-1"/>
                                         <ContextMenuItem><Plus />New</ContextMenuItem>
-                                        <ContextMenuItem onClick={() => {}}><Edit />Rename</ContextMenuItem>
-                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.duplicate')}}><Copy />Duplicate</ContextMenuItem>
+                                        <ContextMenuSub>
+                                          <ContextMenuSubTrigger className="text-sm flex flex-row items-center gap-2 text-accent-foreground">
+                                            <Edit className="text-muted-foreground" /> Rename
+                                          </ContextMenuSubTrigger>
+                                          <ContextMenuSubContent className="p-0 w-64">
+                                            <form
+                                              onSubmit={(e) => {
+                                                e.preventDefault();
+                                                // handle rename
+                                                const formData = new FormData(e.currentTarget);
+                                                const newName = formData.get("tableName") as string;
+                                                if (newName.trim() !== "") {
+                                                  tableAction(dbid || "", table.id, 'action.rename', { newname: newName, tableid: table.id });
+                                                  setRefreshKey(Date.now());
+                                                }
+                                              }}
+                                            >
+                                              <div className="flex flex-row  ">
+                                                <Input placeholder="Table Name" name="tableName" type="text" defaultValue={table.name} />
+                                                <Button variant="outline" className="ml-2" type="submit" size={"icon"}>
+                                                  <Check />
+                                                </Button>
+                                              </div>
+                                            </form>
+                                          </ContextMenuSubContent>
+                                        </ContextMenuSub>
+                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.duplicate'); setRefreshKey(Date.now());}}><Copy />Duplicate</ContextMenuItem>
                                         <hr className="mx-2 my-1"/>
-                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.truncate')}}><ScissorsLineDashed />Truncate</ContextMenuItem>
-                                        <ContextMenuItem className="text-destructive" onClick={() => {tableAction(dbid || "", table.id, 'action.delete')}}><Trash2 className="text-destructive"/>Drop</ContextMenuItem>
+                                        <ContextMenuItem onClick={() => {tableAction(dbid || "", table.id, 'action.truncate'); setRefreshKey(Date.now());}}><ScissorsLineDashed />Truncate</ContextMenuItem>
+                                        <ContextMenuItem className="text-destructive" onClick={() => {tableAction(dbid || "", table.id, 'action.delete'); setRefreshKey(Date.now());}}><Trash2 className="text-destructive"/>Drop</ContextMenuItem>
                                     </ContextMenuContent>
                                 </ContextMenu>
                             )) : (

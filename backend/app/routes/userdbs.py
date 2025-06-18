@@ -402,9 +402,11 @@ def get_user_db_tables(db_id):
                 old_physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
                 new_physical_name = f"{new_name}_{str(table.id).replace('-', '_')}"
                 
+                # First alter the physical table
                 connection.execute(text(f'ALTER TABLE "{old_physical_name}" RENAME TO "{new_physical_name}"'))
+                connection.commit()
                 
-                # Update the metadata in the database !!!! IMPORTANTE BECAUSE IT WILL STILL SHOW IN THE UI
+                # Then update the metadata in the database
                 table.name = new_name
                 db.session.commit()
                 
@@ -429,6 +431,7 @@ def get_user_db_tables(db_id):
                 
                 physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
                 connection.execute(text(f'DROP TABLE IF EXISTS "{physical_name}"'))
+                connection.commit()
                 # delete metadataa
                 db.session.delete(table)
                 db.session.commit()
@@ -439,6 +442,12 @@ def get_user_db_tables(db_id):
             """"
             Truncate a table aka delete * but faster and the table stays
             """
+            
+            data = request.get_json()
+            if not data or 'tableid' not in data:
+                return jsonify(message='Invalid request: "tableid" is required'), 400
+            table_id = data['tableid']
+            
             userdb_engine = db.get_engine(bind='userdb')
             with userdb_engine.connect() as connection:
                 table = db.session.query(Usertables).filter_by(id=table_id, db=selected_db.id).first()
@@ -447,6 +456,7 @@ def get_user_db_tables(db_id):
 
                 physical_name = f"{table.name}_{str(table.id).replace('-', '_')}"
                 connection.execute(text(f'TRUNCATE TABLE "{physical_name}"'))
+                connection.commit()
                 return jsonify(message='Table truncated successfully'), 200
             
         elif request_type == 'action.duplicate':
@@ -481,7 +491,8 @@ def get_user_db_tables(db_id):
                 # Duplicate the table structure and data
                 connection.execute(text(f'CREATE TABLE "{new_physical_name}" (LIKE "{old_physical_name}" INCLUDING ALL)'))
                 connection.execute(text(f'INSERT INTO "{new_physical_name}" SELECT * FROM "{old_physical_name}"'))
-
+                
+                connection.commit()
                 db.session.commit()
 
                 return jsonify(

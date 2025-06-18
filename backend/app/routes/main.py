@@ -47,7 +47,7 @@ def post_install():
 
     client = WebClient()
 
-    if received_state.startswith("hackclub-"):
+    if received_state.startswith("HackClub"):
         response = client.oauth_v2_access(
             client_id=client_id,
             client_secret=client_secret,
