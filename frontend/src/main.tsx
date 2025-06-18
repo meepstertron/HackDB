@@ -7,19 +7,22 @@ import { AuthProvider } from './components/authContext'
 import { MenuBarProvider } from './components/menuContext'
 import { EditorProvider } from './editorContext'
 import { Toaster } from './components/ui/sonner'
+import { ThemeProvider } from './components/theme-provider'
 
 
 
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <EditorProvider>
-        <MenuBarProvider>
-          <Routing />
-        </MenuBarProvider>
-      </EditorProvider>
-    </AuthProvider>
-    <Toaster />
+    <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
+      <AuthProvider>
+        <EditorProvider>
+          <MenuBarProvider>
+            <Routing />
+          </MenuBarProvider>
+        </EditorProvider>
+      </AuthProvider>
+      <Toaster />
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -1,11 +1,10 @@
 import TestNode from '@/components/nodes/test';
-import { Command, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { CommandDialog, CommandEmpty, CommandList } from '@/components/ui/command';
 
-import { FileQuestion } from 'lucide-react';
+import { DollarSign, FileQuestion, Logs, Variable } from 'lucide-react';
 import React, { MouseEvent, TouchEvent, useCallback, useState } from 'react';
-import { EdgeProps, getBezierPath, OnConnectEnd } from 'reactflow';
-import ReactFlow, {
+import {
   addEdge,
   MiniMap,
   Controls,
@@ -17,15 +16,32 @@ import ReactFlow, {
   applyEdgeChanges,
   applyNodeChanges,
   NodeToolbar,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-
-
-
+  EdgeProps,
+  getBezierPath,
+  OnConnectEnd,
+  ReactFlow,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import StringNode from '@/components/nodes/string';
+import NumberNode from '@/components/nodes/number';
+import MathNode from '@/components/nodes/math';
+import LogNode from '@/components/nodes/log';
+import OnRunNode from '@/components/nodes/onRun';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import InvalidNode from '@/components/nodes/invalid';
 
 let selectableNodes = [
-    { id: '1', label: 'String Node', type: 'ungrouped', icon: <FileQuestion /> },
-    { id: '2', label: 'Another Node', type: 'ungrouped', icon: <FileQuestion /> },
+    { id: '1', label: 'String Node', type: 'Inputs', icon: <DollarSign className='text-green-500' />, insertid: 'string' },
+    { id: '2', label: 'Another Node', type: 'Ungrouped', icon: <FileQuestion className='text-gray-500'/> },
+    { id: '3', label: 'Number Node', type: 'Inputs', icon: <DollarSign className='text-green-500' /> },
+    {id: "4", label: "Math Node", type: "Math", icon: <Variable className='text-blue-500' />},
+    { id: '5', label: 'Log', type: 'Outputs', icon: <Logs className='text-yellow-500' /> },
+
 ];
 
 interface NodeItem {
@@ -33,6 +49,7 @@ interface NodeItem {
     label: string;
     type: string;
     icon: React.ReactNode;
+    insertid?: string; // Optional field for custom node types
 }
 
 let categories: Record<string, NodeItem[]> = {};
@@ -46,22 +63,46 @@ for (const node of selectableNodes) {
   categories[node.type].push(node);
 }
 
+
 const initialNodes: Node[] = [
   {
     id: '1',
-    type: 'input',
-    data: { label: 'string Node'},
+    type: 'number',
+    data: {value: 1},
     position: { x: 250, y: 5 },
   },
-  {
+{
     id: '2',
-    data: { label: 'Another Node' },
-    position: { x: 100, y: 100 },
+    type: 'number',
+    data: {value: 1},
+    position: { x: 250, y: 100 },
   },
+  {
+    id: '3',
+    type: 'math',
+    data: {op: "add"},
+    position: { x: 600, y: 5 },
+  },
+    {
+        id: '4',
+        type: 'log',
+        data: {value: 1},
+        position: { x: 850, y: 52 },
+    },
+    {
+        id: '5',
+        type: 'onRun',
+        data: {value: 1},
+        position: { x: 250, y: 220 },
+    }
+
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', type: "typeEdge", data: { type: 'string' } },
+  { id: 'e1-3', source: '1', target: '3', sourceHandle: 'source1', targetHandle: 'target1', type: "", data: { type: 'number' } },
+  { id: 'e2-3', source: '2', target: '3', sourceHandle: 'source1', targetHandle: 'target2', type: "", data: { type: 'number' } },
+    { id: 'e3-4', source: '3', target: '4', sourceHandle: 'source1', targetHandle: 'target1', type: "", data: { type: 'number' } },
+    { id: 'e5-4', source: '5', target: '4', sourceHandle: 'trigger1', targetHandle: 'trigger1', type: "", data: { type: 'number' } },
 ];
 const TypeEdge: React.FC<EdgeProps> = ({
   id, sourceX, sourceY, targetX, targetY, data,
@@ -70,20 +111,26 @@ const TypeEdge: React.FC<EdgeProps> = ({
   return (
     <>
       <path id={id} d={edgePath} stroke={data?.type === 'number' ? 'blue' : '#f0cf3e'} strokeWidth={2} fill="none" className='cursor-not-allowed' />
-
     </>
   );
 };
 
+export const run = () => {
+  console.log('Run node triggered');
+  console.log('node data:', nodes);
+    console.log('edges data:', edges);
+};
+
 
 const edgeTypes = { typeEdge: TypeEdge };
-const nodeTypes = { test: TestNode };
+const nodeTypes = { string: StringNode, number: NumberNode, math: MathNode, log: LogNode, onRun: OnRunNode, invalid: InvalidNode };
 const FlowEditor: React.FC = () => {
   const [nodeSelectorOpen, setNodeSelectorOpen] = useState(false);
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [connecting, setConnecting] = useState(false);
-
+  let lastMousePosition: { x: number; y: number } | null = null;
+  
   const onNodesChange = useCallback(
     (changes: any[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
@@ -98,24 +145,43 @@ const FlowEditor: React.FC = () => {
   const onConnect = useCallback(
     (connection: Edge | Connection) => {
       setEdges((eds) => addEdge(connection, eds));
-      setConnecting(false); // Clear flag on successful connect
+      setConnecting(false); 
     },
     []
   );
   const onEdgeClick = useCallback(
-  (event: React.MouseEvent, edge: Edge) => {
-    event.stopPropagation();
-    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-  },
-  []
-);
-const onConnectEnd: OnConnectEnd = (event: any, connectionState: any) => {
-  if (!connectionState.isValid) {
-    console.log("Dropped on pane");
-    // your logic...
-  }
-};
+    (event: React.MouseEvent, edge: Edge) => {
+      event.stopPropagation();
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    },
+    []
+  );
+  const onConnectEnd = useCallback(
+    (event: any, connectionState: any) => {
+      
+      if (!connectionState.isValid && connectionState.fromNode) {
+        
+        setNodeSelectorOpen(true);
+        lastMousePosition = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+      }
+    },
+    [],
+  );
 
+
+  const handleNodeSelect = useCallback((node: NodeItem) => {
+    setNodeSelectorOpen(false);
+    const newNode: Node = {
+      id: (nodes.length + 1).toString(),
+      type: node.insertid || "invalid",
+      data: { label: node.label, value: '', onChange: (value: string) => console.log(value) },
+      position: { x: lastMousePosition?.x || 0, y: lastMousePosition?.y || 0 },
+    };
+    setNodes((nds) => nds.concat(newNode));
+  }, []);
 
   return (
     <div style={{ width: '100%', height: '90vh' }}>
@@ -123,35 +189,38 @@ const onConnectEnd: OnConnectEnd = (event: any, connectionState: any) => {
         <CommandInput placeholder='Search for nodes...' />
         <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            
+            {Object.entries(categories).map(([category, nodes]) => (
+                <CommandGroup heading={category} key={category}>
+                    {nodes.map((node) => (
+                        <CommandItem onSelect={() => handleNodeSelect(node)} key={node.id}>
+                            {node.icon}{node.label}
+                        </CommandItem>
+                    ))}
+                </CommandGroup>
+            ))}
         </CommandList>
       </CommandDialog>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onEdgeClick={onEdgeClick}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        edgeTypes={edgeTypes}
-        nodeTypes={nodeTypes}
-        onConnect={onConnect}
-        onConnectStart={onConnectStart}
-        onConnectEnd={(event: any, connectionState: any) => {
-        
+      <ContextMenu>
+        <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onEdgeClick={onEdgeClick}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            edgeTypes={edgeTypes}
+            nodeTypes={nodeTypes}
+            onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
+            proOptions={{ hideAttribution: true }}
+            fitView
+        >
 
-          if (!connectionState.isValid) {
-            console.log("Connection dropped outside a valid handle – do something!");
-          }
-        }}
-        
-        proOptions={{ hideAttribution: true }}
-        fitView
-      >
-        
-        <Controls />
-        <Background />
+            <Background />
+            
+        </ReactFlow>
+      </ContextMenu>
 
-      </ReactFlow>
     </div>
   );
 };

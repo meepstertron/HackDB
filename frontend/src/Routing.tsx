@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import App from "./App";
-import RootLayout, { EditorLayout } from "./components/layout";
+import RootLayout, { EditorLayout, FlowEditorLayout } from "./components/layout";
 import DBInfo from "./pages/databaseinfo";
 import { DBPage } from "./pages/databases";
 import { useContext } from "react";
@@ -11,6 +11,7 @@ import DatabaseCreationPage from "./pages/createdb";
 import TableEditor from "./pages/editor";
 import TokenPage from "./pages/tokens";
 import FlowEditor from "./pages/FlowEditor";
+import AddNodeOnEdgeDrop from "./pages/test";
 
 
 
@@ -75,7 +76,9 @@ function Routing() {
             </RootLayout>
           }/>
           <Route path="/flow" element={
-            <FlowEditor />
+            <FlowEditorLayout>
+              <FlowEditor />
+            </FlowEditorLayout>
           } />
           <Route path="*" element={
 

@@ -2,7 +2,7 @@ import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
 import Sidebar, { EditorSidebar, SquareIconButton } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, Database, GitCommitVertical, ListRestart, Loader2, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
+import { AppWindowIcon, Check, Database, GitCommitVertical, Globe, ListRestart, Loader2, Play, PlaySquare, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
@@ -17,6 +17,7 @@ import { commitChanges } from "@/lib/api";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { constructWhereClause } from "@/pages/editor";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 function RootLayout({ children }: React.PropsWithChildren) {
     const { menuItems, setMenuItems, title, setTitle  } = useMenuBar();
@@ -185,6 +186,83 @@ function EditorLayout({ children}: React.PropsWithChildren) {
 }
 
 
+function FlowEditorLayout({ children}: React.PropsWithChildren) {
+
+
+    return (
+        <>
+            {/* {loading && (
+                <div className="flex items-center justify-center h-screen">
+                    <LoadingScreen />
+                </div>
+            )} */}
+            
+            
+            <SidebarProvider className={false ? "hidden" : ""}>
+                <div className="h-screen w-screen flex text-gray-900">
+                    {/* <EditorSidebar /> */}
+                    <div className="flex flex-col flex-1">
+                        
+                        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-300 bg-white dark:bg-neutral-900 dark:border-neutral-700">
+                            <div className="flex items-center gap-4">
+                              {/* <div className="flex items-center gap-2">
+                                <SquareIconButton icon={<Undo2 />} label="Undo" onClick={() => {}} className="h-9" />
+                                <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
+                              </div> */}
+                              <div className="flex items-center gap-0.5">
+                                <Select>
+                                  <SelectTrigger>
+                                    <SelectValue>
+                                      <span className="text-xs text-muted-foreground">Select a workflow</span>
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="workflow1">Workflow 1</SelectItem>
+                                    <SelectItem value="workflow2">Workflow 2</SelectItem>
+                                    <SelectItem value="workflow3">Workflow 3</SelectItem>
+                                </SelectContent>  
+                                </Select>
+                                <SquareIconButton icon={<Plus />} label="New Workflow" onClick={() => {}} className="h-9 ml-2" />
+                                <SquareIconButton icon={<Trash2 />} label="Delete Workflow" onClick={() => {}} className="h-9 ml-2" />
+                                <SquareIconButton icon={<Pencil />} label="Edit Name" onClick={() => {}} className="h-9 ml-2" />
+                              </div>
+
+
+                            
+
+
+                            </div>
+                            <div className="flex items-center gap-2 h-full">
+                                <span className="mx-3 text-xs text-muted-foreground" title="0ms">0 Nodes</span>
+                                <SquareIconButton icon={<AppWindowIcon />} label="Console" className="h-9" />
+                                <Button variant="outline" className="justify-center items-center dark:text-white" >
+                                    <Play />
+                                    <span className="ml-2">Run</span>
+                                    
+                                    <span className="ml-2 text-xs font-normal"></span>
+                                </Button>
+                                <Button variant="outline" className="justify-center items-center dark:text-white" >
+                                    <Globe />
+                                    <span className="ml-2">Deploy</span>
+                                    
+                                    <span className="ml-2 text-xs font-normal"></span>
+                                </Button>
+                            </div>
+                        </header>
+                        
+                        <main className="flex-1 overflow-auto ">
+                            {children}
+                        </main>
+                    </div>
+                </div>
+            </SidebarProvider>
+        </>
+    )
+}
+
+
+
+
 function LoadingScreen() {
 
     const randomInt = (min: number, max: number): number => {
@@ -262,4 +340,4 @@ function LoadingScreen() {
 }
 
 export default RootLayout;
-export { RootLayout, EditorLayout };
+export { RootLayout, EditorLayout, FlowEditorLayout };

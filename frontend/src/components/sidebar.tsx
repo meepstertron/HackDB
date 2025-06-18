@@ -56,7 +56,7 @@ export function SquareIconButton({ icon, label, onClick, className }: {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button type="button" variant="outline" className={cn("w-fit h-auto aspect-square", className)} onClick={onClick}>
+                <Button type="button" variant="outline" className={cn("w-fit h-auto aspect-square dark:text-white", className)} onClick={onClick}>
                     {icon}
                 </Button>
             </TooltipTrigger>
@@ -145,7 +145,7 @@ function EditorSidebar() {
                                         <Plus />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-72">
+                                <PopoverContent className="w-72" side="right">
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
                                         // Handle create table logic here
