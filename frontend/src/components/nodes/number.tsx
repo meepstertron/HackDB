@@ -10,7 +10,7 @@ const NumberNode = ({ data }: any) => (
         <Input
             className="h-8 px-2 text-sm rounded focus:ring-1 focus:ring-blue-500 border-[#1a192b]"
             placeholder="Enter number..."
-            value={data.value}
+            
             onChange={(e) => data.onChange?.(e.target.value)}
             defaultValue={data.value || 0}
         />

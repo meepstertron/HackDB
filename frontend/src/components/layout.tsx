@@ -2,7 +2,7 @@ import { title } from "process";
 import ModularMenuBar from "./modularMenuBar";
 import Sidebar, { EditorSidebar, SquareIconButton } from "./sidebar";
 import { motion, AnimatePresence } from "framer-motion"
-import { AppWindowIcon, Check, Database, GitCommitVertical, Globe, ListRestart, Loader2, Play, PlaySquare, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
+import { AppWindowIcon, Check, Database, GitCommitVertical, Globe, Home, ListRestart, Loader2, Play, PlaySquare, Plus, Redo2, Trash2, Undo2 } from "lucide-react"
 import { Pencil } from "lucide-react";
 import { useMenuBar } from "./menuContext";
 import React, { useEffect, useState } from "react";
@@ -210,6 +210,7 @@ function FlowEditorLayout({ children}: React.PropsWithChildren) {
                                 <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
                               </div> */}
                               <div className="flex items-center gap-0.5">
+                                <SquareIconButton icon={<Home />} label="Return to Home" onClick={() => {}} className="h-9" />
                                 <Select>
                                   <SelectTrigger>
                                     <SelectValue>

@@ -2,8 +2,8 @@ import TestNode from '@/components/nodes/test';
 import { Command, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { CommandDialog, CommandEmpty, CommandList } from '@/components/ui/command';
 
-import { DollarSign, FileQuestion, Logs, Variable } from 'lucide-react';
-import React, { MouseEvent, TouchEvent, useCallback, useState } from 'react';
+import { Dices, DollarSign, FileQuestion, Logs, Play, Text, Variable } from 'lucide-react';
+import React, { MouseEvent, TouchEvent, useCallback, useRef, useState } from 'react';
 import {
   addEdge,
   MiniMap,
@@ -34,13 +34,17 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import InvalidNode from '@/components/nodes/invalid';
+import RandomNode from '@/components/nodes/random';
 
 let selectableNodes = [
     { id: '1', label: 'String Node', type: 'Inputs', icon: <DollarSign className='text-green-500' />, insertid: 'string' },
-    { id: '2', label: 'Another Node', type: 'Ungrouped', icon: <FileQuestion className='text-gray-500'/> },
-    { id: '3', label: 'Number Node', type: 'Inputs', icon: <DollarSign className='text-green-500' /> },
-    {id: "4", label: "Math Node", type: "Math", icon: <Variable className='text-blue-500' />},
-    { id: '5', label: 'Log', type: 'Outputs', icon: <Logs className='text-yellow-500' /> },
+    { id: '3', label: 'Number Node', type: 'Inputs', icon: <DollarSign className='text-green-500' />, insertid: 'number' },
+    {id: "4", label: "Math Node", type: "Math", icon: <Variable className='text-blue-500' />, insertid: 'math'},
+    { id: '5', label: 'Log', type: 'Outputs', icon: <Logs className='text-yellow-500' />, insertid: 'log' },
+    { id: '6', label: 'On Run', type: 'Events', icon: <Play className='text-purple-500' />, insertid: 'onRun' },
+    { id: '7', label: 'Random', type: 'Math', icon: <Dices className='text-blue-500' />, insertid: 'random' },
+    { id:'8', label: 'Join Text', type: 'Operations', icon: <Text className='text-orange-500' />, insertid: 'joinText' },
+    
 
 ];
 
@@ -115,21 +119,18 @@ const TypeEdge: React.FC<EdgeProps> = ({
   );
 };
 
-export const run = () => {
-  console.log('Run node triggered');
-  console.log('node data:', nodes);
-    console.log('edges data:', edges);
-};
+
 
 
 const edgeTypes = { typeEdge: TypeEdge };
-const nodeTypes = { string: StringNode, number: NumberNode, math: MathNode, log: LogNode, onRun: OnRunNode, invalid: InvalidNode };
+const nodeTypes = { string: StringNode, number: NumberNode, math: MathNode, log: LogNode, onRun: OnRunNode, invalid: InvalidNode, random: RandomNode };
 const FlowEditor: React.FC = () => {
   const [nodeSelectorOpen, setNodeSelectorOpen] = useState(false);
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [connecting, setConnecting] = useState(false);
   let lastMousePosition: { x: number; y: number } | null = null;
+  const nodeIdCounter = useRef(nodes.length + 1)
   
   const onNodesChange = useCallback(
     (changes: any[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -174,14 +175,47 @@ const FlowEditor: React.FC = () => {
 
   const handleNodeSelect = useCallback((node: NodeItem) => {
     setNodeSelectorOpen(false);
+    const newId = (nodeIdCounter.current++).toString();
     const newNode: Node = {
-      id: (nodes.length + 1).toString(),
+      id: newId,
       type: node.insertid || "invalid",
-      data: { label: node.label, value: '', onChange: (value: string) => console.log(value) },
+      data: {},
       position: { x: lastMousePosition?.x || 0, y: lastMousePosition?.y || 0 },
     };
     setNodes((nds) => nds.concat(newNode));
   }, []);
+
+  const handleNodeValueChange = useCallback((id: string, value: any) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, value } }
+          : node
+      )
+    );
+  }, []);
+
+  const enhancedNodes = nodes.map((node) => {
+    if (node.type === "number") {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onChange: (value: any) => handleNodeValueChange(node.id, value),
+        },
+      };
+    }
+    if (node.type === "string") {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onChange: (value: any) => handleNodeValueChange(node.id, value),
+        },
+      };
+    }
+    return node;
+  });
 
   return (
     <div style={{ width: '100%', height: '90vh' }}>
@@ -196,13 +230,17 @@ const FlowEditor: React.FC = () => {
                             {node.icon}{node.label}
                         </CommandItem>
                     ))}
+
                 </CommandGroup>
+
             ))}
+            <CommandItem onSelect={() => console.log(nodes)}>get nodes and print to console</CommandItem>
+            <CommandItem onSelect={() => console.log(edges)}>get edges and print to console</CommandItem>
         </CommandList>
       </CommandDialog>
       <ContextMenu>
         <ReactFlow
-            nodes={nodes}
+            nodes={enhancedNodes} 
             edges={edges}
             onEdgeClick={onEdgeClick}
             onNodesChange={onNodesChange}
@@ -217,7 +255,6 @@ const FlowEditor: React.FC = () => {
         >
 
             <Background />
-            
         </ReactFlow>
       </ContextMenu>
 

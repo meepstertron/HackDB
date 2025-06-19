@@ -3,18 +3,20 @@ import { Handle, Position } from '@xyflow/react';
 import { Input } from '../ui/input';
 
 const StringNode = ({ data }: any) => (
-    <div className="bg-white border border-[#1a192b] rounded  p-3 min-w-[160px]">
-        <div className="text-xs font-semibold text-[#1a192b] mb-2 font-mono border">String</div>
-        <Input 
-            className="h-8 px-2 text-sm rounded focus:ring-1 focus:ring-blue-500 border-[#1a192b]" 
-            placeholder="Enter text..."
-            value={data.value}
+    <div className="bg-white border border-[#1a192b] rounded p-3 pt-0 min-w-[160px] overflow-hidden">
+
+        <div className="text-xs font-semibold text-[#1a192b] mb-2 font-mono flex flex-row items-center border-b pt-1 bg-muted -mx-3 border-[#1a192b]"><span className='mx-1'>String</span></div>
+        <Input
+            className="h-8 px-2 text-sm rounded focus:ring-1 focus:ring-blue-500 border-[#1a192b]"
+            placeholder="Enter String..."
             onChange={(e) => data.onChange?.(e.target.value)}
+            defaultValue={data.value || ""}
         />
-        <Handle 
+        <Handle
             type="source" 
-            position={Position.Bottom} 
+            position={Position.Right} 
             id="source1"
+            style={{ top: '60%' }}
         />
 
     </div>

@@ -144,7 +144,7 @@ html, body, #root {
 
 .handletext-left {
   position: relative;
-
+  width: 100%;
   transform: translate(10px, -30%);
   font-size: 8px;
   pointer-events: none;
@@ -152,7 +152,7 @@ html, body, #root {
 
 .handletext-right {
   position: relative;
-
+  width: 100%;
   transform: translate(-35px, -30%);
   font-size: 8px;
   text-align: right;
