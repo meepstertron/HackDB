@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/context-menu"
 import InvalidNode from '@/components/nodes/invalid';
 import RandomNode from '@/components/nodes/random';
+import JoinTextNode from '@/components/nodes/joinText';
 
 let selectableNodes = [
     { id: '1', label: 'String Node', type: 'Inputs', icon: <DollarSign className='text-green-500' />, insertid: 'string' },
@@ -123,7 +124,7 @@ const TypeEdge: React.FC<EdgeProps> = ({
 
 
 const edgeTypes = { typeEdge: TypeEdge };
-const nodeTypes = { string: StringNode, number: NumberNode, math: MathNode, log: LogNode, onRun: OnRunNode, invalid: InvalidNode, random: RandomNode };
+const nodeTypes = { string: StringNode, number: NumberNode, math: MathNode, log: LogNode, onRun: OnRunNode, invalid: InvalidNode, random: RandomNode, joinText: JoinTextNode };
 const FlowEditor: React.FC = () => {
   const [nodeSelectorOpen, setNodeSelectorOpen] = useState(false);
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
@@ -239,23 +240,25 @@ const FlowEditor: React.FC = () => {
         </CommandList>
       </CommandDialog>
       <ContextMenu>
-        <ReactFlow
-            nodes={enhancedNodes} 
-            edges={edges}
-            onEdgeClick={onEdgeClick}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            edgeTypes={edgeTypes}
-            nodeTypes={nodeTypes}
-            onConnect={onConnect}
-            onConnectStart={onConnectStart}
-            onConnectEnd={onConnectEnd}
-            proOptions={{ hideAttribution: true }}
-            fitView
-        >
+        <ContextMenuTrigger className="w-full h-full">
+            <ReactFlow
+                nodes={enhancedNodes} 
+                edges={edges}
+                onEdgeClick={onEdgeClick}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                edgeTypes={edgeTypes}
+                nodeTypes={nodeTypes}
+                onConnect={onConnect}
+                onConnectStart={onConnectStart}
+                onConnectEnd={onConnectEnd}
+                proOptions={{ hideAttribution: true }}
+                fitView
+            >
 
-            <Background />
-        </ReactFlow>
+                <Background />
+            </ReactFlow>
+        </ContextMenuTrigger>
       </ContextMenu>
 
     </div>

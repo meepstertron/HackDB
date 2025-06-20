@@ -1,3 +1,4 @@
+import random
 import time
 nodes = [
     {
@@ -185,6 +186,10 @@ class NodeFactory:
             return OnRunNode(raw_node)
         elif node_type == "string":
             return StringNode(raw_node)
+        elif node_type == "joinText":
+            return JoinTextNode(raw_node)
+        elif node_type == "random":
+            return RandomNode(raw_node)
         else:
             raise ValueError(f"Unknown node type: {node_type}")
 
@@ -239,6 +244,21 @@ class OnRunNode(BaseNode):
                 target_node = graph.nodes[edge["target"]]
                 target_node.evaluate(graph)
                 
+class JoinTextNode(BaseNode):
+    def evaluate(self, graph):
+        input_values = []
+        for edge in graph.edge_map.get(self.id, []):
+            source_node = graph.nodes[edge["source"]]
+            input_values.append(source_node.evaluate(graph))
+        return "".join(input_values)
+    
+class RandomNode(BaseNode):
+    def evaluate(self, graph):
+        input_values = []
+        for edge in graph.edge_map.get(self.id, []):
+            source_node = graph.nodes[edge["source"]]
+            input_values.append(source_node.evaluate(graph))
+        return random.choice(input_values) if input_values else None
 
 
 

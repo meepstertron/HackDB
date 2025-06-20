@@ -213,9 +213,7 @@ function FlowEditorLayout({ children}: React.PropsWithChildren) {
                                 <SquareIconButton icon={<Home />} label="Return to Home" onClick={() => {}} className="h-9" />
                                 <Select>
                                   <SelectTrigger>
-                                    <SelectValue>
-                                      <span className="text-xs text-muted-foreground">Select a workflow</span>
-                                    </SelectValue>
+                                    <SelectValue placeholder="Select a workflow" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="workflow1">Workflow 1</SelectItem>
@@ -237,7 +235,7 @@ function FlowEditorLayout({ children}: React.PropsWithChildren) {
                                 <span className="mx-3 text-xs text-muted-foreground" title="0ms">0 Nodes</span>
                                 <SquareIconButton icon={<AppWindowIcon />} label="Console" className="h-9" />
                                 <Button variant="outline" className="justify-center items-center dark:text-white" >
-                                    <Play />
+                                    {<Play />}
                                     <span className="ml-2">Run</span>
                                     
                                     <span className="ml-2 text-xs font-normal"></span>
