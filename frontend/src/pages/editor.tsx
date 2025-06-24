@@ -66,58 +66,52 @@ function TableEditor() {
     const [newRow, setNewRow] = useState<any>({});
 
 
-    
+    // useEffect(() => {
+    //     console.log("New Row Updated:", newRow);
+    // }, [newRow]);
 
 
 
     useEffect(() => {
-        if (setContentFilter) {
-            setContentFilter(`{}`);
-        }
-    }, []);
 
+        setSelectedRows([]);
+        setChanges([]);
+        setStructure([]);
+        setData([]);
+        setFailedToGetData(false);
 
-    useEffect(() => {
         const fetchTableStructure = async () => {
-            console.log("precheck")
             if (selectedTable && dbid) {
                 setLimit(50);
                 setOffset(0);
-                console.log("Fetching table structure for table: " + selectedTable);
                 setStructure(await getTableStructure(selectedTable, dbid));
-                
-
             }
-        }
+        };
         fetchTableStructure();
-    },[selectedTable, dbid, refreshKey ]);
+    }, [selectedTable, dbid, refreshKey]);
+
 
 
     useEffect(() => {
-        const fetchTableData = async () => {
-            if (selectedTable && dbid) {
-                setFailedToGetData(false);
-                let sortbystr = (sortBy && sortBy.column) ? `${sortBy.column},${sortBy.direction}` : undefined;
-
-                getTableData(selectedTable, dbid, limit, offset, sortbystr).then((response) => {
-                    if (response && response.data) {
-                        const processedData = response.data.map((item: any, index: number) => ({
-                            ...item,
-                            hiddenRowIDforFrontend: (index * 1.4375) + offset 
-                        }));
-                        
-                        setData(processedData);
-                        setTimetaken(response.time);
-                    } else {
-                        console.error("Error fetching table data:", response);
-                        setData([]);
-                        setFailedToGetData(true);
-                    }
-                });
-            }
+        setFailedToGetData(false);
+        setData([]);
+        if (selectedTable && dbid) {
+            let sortbystr = (sortBy && sortBy.column) ? `${sortBy.column},${sortBy.direction}` : undefined;
+            getTableData(selectedTable, dbid, limit, offset, sortbystr).then((response) => {
+                if (response && response.data) {
+                    const processedData = response.data.map((item: any, index: number) => ({
+                        ...item,
+                        hiddenRowIDforFrontend: (index * 1.4375) + offset 
+                    }));
+                    setData(processedData);
+                    setTimetaken(response.time);
+                } else {
+                    setData([]);
+                    setFailedToGetData(true);
+                }
+            });
         }
-        fetchTableData();
-    }, [selectedTable, dbid, limit, offset, sortBy, refreshKey]); 
+    }, [selectedTable, dbid, limit, offset, sortBy, refreshKey]);
 
 
 
@@ -268,6 +262,7 @@ function TableEditor() {
                                         {column.name} <span className="text-xs font-normal ml-2">{column.type}</span>
                                     </PopoverTrigger>
                                     <PopoverContent>
+                                        
                                         <h4 className="text-lg mb-2">Edit Column</h4>
 
                                         <Button variant='ghost' size='sm' className="" onClick={() => {
@@ -314,15 +309,34 @@ function TableEditor() {
                                         <Input id="default-value" defaultValue={column.defaultValue || ''} placeholder="Optional default value" />
 
                                         <div className="flex items-center space-x-2">
-                                            
-                                            <Checkbox id="allow-nullvalues" />
+                                            <Checkbox id="allow-nullvalues" defaultChecked={column.nullable} onChange={(e) => {
+                                                setStructure(prev => {
+                                                    const newStructure = [...prev];
+                                                    newStructure[index] = {
+                                                        ...newStructure[index],
+                                                        nullable: (e.target as HTMLInputElement).checked,
+                                                    };
+                                                    return newStructure;
+                                                });
+                                                setChanges(prev => [
+                                                    ...prev,
+                                                    {
+                                                        column: column.name,
+                                                        oldValue: column.nullable,
+                                                        newValue: (e.target as HTMLInputElement).checked,
+                                                        table: selectedTable,
+                                                        type: "edit",
+                                                        timestamp: new Date().toISOString(),
+                                                    },
+                                                ]);
+                                            }} />
                                             <Label htmlFor="allow-nullvalues" className="mt-2 mb-1">Allow Null Values</Label>
                                         </div>
 
 
                                         <div className="flex items-center space-x-2">
                                             
-                                            <Checkbox id="Primary Key" checked={column.primaryKey || false} onChange={(e) => {
+                                            <Checkbox id="Primary Key" defaultChecked={column.primaryKey || false} onChange={(e) => {
                                                 setStructure(prev => {
                                                     const newStructure = [...prev];
                                                     newStructure[index] = {
@@ -346,8 +360,7 @@ function TableEditor() {
                                             } />
                                             <Label htmlFor="Primary Key" className="mt-2 mb-1">Primary Key</Label>
                                         </div>
-                                        <Button variant="default"><Save /> Save Changes</Button>
-
+                                        
                                     </PopoverContent>
                                 </Popover>
                             </th>
@@ -358,39 +371,55 @@ function TableEditor() {
                 {addingNewColumn && (
                     <tr className="border-t border-gray-300">
                         <td className="w-6 border border-gray-300 p-0.5 text-center">
-                            <input type="checkbox" className="w-3 h-3" />
+                            <input type="checkbox" disabled className="w-3 h-3" />
                         </td>
                         {structure.map((column, colIndex) => (
                             <td key={column.name || colIndex} className="border border-gray-300 ">
                                 <Popover>
                                     <PopoverTrigger className="p-0 ">
                                         <div className="w-full h-full bg-muted cursor-pointer p-1 min-h-[24px]">
-                                            {column.default ? "DEFAULT" : column.nullable ? "NULL" : "!EMPTY!"} 
+                                            {newRow[column.name] !== undefined && newRow[column.name] !== "" 
+                                                ? newRow[column.name] 
+                                                : column.default 
+                                                    ? "DEFAULT" 
+                                                    : column.nullable 
+                                                        ? "NULL" 
+                                                        : "!EMPTY!"
+                                            }
                                         </div>
                                     </PopoverTrigger>
                                     <PopoverContent className="p-0 min-w-fit w-100">
-                                        <div className="p-0">
-                                            <textarea className="w-full h-full p-1 min-h-[24px] resize-none" placeholder="Content Goes here"></textarea>
-                                            <hr className="my-1 border-dashed border-gray-300" />
-                                            <div className="flex items-center justify-between p-1">
-                                                <div>
-                                                    <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: null })}>
-                                                        Set NULL
-                                                    </Button>
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault();
+                                            const form = e.currentTarget;
+                                            const value = (form.elements.namedItem(column.name) as HTMLTextAreaElement)?.value ?? "";
+                                            setNewRow((prev: any) => ({ ...prev, [column.name]: value }));
+                                        }}>
+                                            <div className="p-0">
+                                                <textarea
+                                                    name={column.name}
+                                                    className="w-full h-full p-1 min-h-[24px] resize-none"
+                                                    placeholder="Content Goes here"
+                                                    defaultValue={newRow[column.name] ?? ""}
+                                                ></textarea>
+                                                <hr className="my-1 border-dashed border-gray-300" />
+                                                <div className="flex items-center justify-between p-1">
+                                                    <div>
+                                                        {column.nullable && <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: "NULL" })}>
+                                                            Set NULL
+                                                        </Button>}
 
-                                                    {column.default ? <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: column.defaultValue ?? "" })}>
-                                                        Set Default
-                                                    </Button> : null}
-                                                </div><div >
-                                                    <Button size="sm" variant="outline">
-                                                        Cancel
-                                                    </Button>
-                                                    <Button size="sm" variant="default">
-                                                        Submit
-                                                    </Button>
+                                                        {column.default ? <Button size="sm" variant="outline" onClick={() => setNewRow({ ...newRow, [column.name]: "DEFAULT" })}>
+                                                            Set Default
+                                                        </Button> : null}
+                                                    </div><div >
+                                                        <Button size="sm" variant="default" type="submit">
+                                                            Submit
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </form>
                                     </PopoverContent>
                                 </Popover>
                             </td>

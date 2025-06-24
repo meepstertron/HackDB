@@ -5,3 +5,5 @@ __pycache__
 .env
 *.egg-info
 lib/cli/hackdb_cli.egg-info/
+
+monitor/
