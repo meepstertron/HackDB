@@ -86,4 +86,17 @@ class Usertables(Base):
     databases: Mapped['Databases'] = relationship('Databases', back_populates='usertables')
 
 # class SDKInstances(Base):
+
     
+class CreditsHistory(Base):
+    __tablename__ = 'credits_history'
+    __table_args__ = (
+        ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE', name='credits_history_user_id_fkey'),
+        PrimaryKeyConstraint('id', name='credits_history_pkey')
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    credits_spent: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))

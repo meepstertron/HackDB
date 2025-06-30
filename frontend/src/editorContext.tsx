@@ -42,6 +42,8 @@ type EditorContextType = {
     setFailedToGetData: (failed: boolean) => void;
     databases: Array<{id: string, name: string, tables: number, size: string}>;
     setDatabases: (databases: Array<{id: string, name: string, tables: number, size: string}>) => void;
+    newRow: any;
+    setNewRow: (row: any) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -63,6 +65,7 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [addingNewColumn, setAddingNewColumn] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [failedToGetData, setFailedToGetData] = useState(false);
+    const [newRow, setNewRow] = useState<any>({});
     const [databases, setDatabases] = useState(                    [
                         { id: "1", name: "Loading", tables: 0, size: "Loading" }
                     ]);
@@ -79,7 +82,7 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     }, [limit]);
 
     return (
-        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData, databases, setDatabases }}>
+        <EditorContext.Provider value={{ selectedTable, setSelectedTable, changes, setChanges, tables, setTables, selectedRows, setSelectedRows, limit, setLimit, offset, setOffset, data, setData, timetaken, setTimetaken, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData, databases, setDatabases, newRow, setNewRow }}>
             {children}
         </EditorContext.Provider>
     )

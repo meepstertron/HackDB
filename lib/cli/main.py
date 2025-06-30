@@ -1,35 +1,102 @@
 import argparse
+import time
 import requests
 import uuid
 import os
 import json
 
-config_path = os.path.expanduser("~/.hackdb/config.json")
+config_path = os.path.expanduser("~/.hexagonical/hackdb/config.json")
 config = {}
+
+
+class color:
+   PURPLE = '\033[95m'
+   CYAN = '\033[96m'
+   DARKCYAN = '\033[36m'
+   BLUE = '\033[94m'
+   GREEN = '\033[92m'
+   YELLOW = '\033[93m'
+   RED = '\033[91m'
+   BOLD = '\033[1m'
+   UNDERLINE = '\033[4m'
+   END = '\033[0m'
+
+
 
 if os.path.exists(config_path):
     try:
         with open(config_path, "r") as f:
             config = json.load(f)
     except Exception:
-        raise Warning("Config file empty or nonexistent")
+        print(Warning("Config file empty or nonexistent"))
         config = {}
+else:
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=4)
 
-config["instanceid"] = uuid.uuid4()
+if config.get("instanceid") is None:
+    config["instanceid"] = str(uuid.uuid4())
+if config.get("api_url") is None:
+    config["api_url"] = "https://hackdb.hexagonical.ch/api/sdk/v1"
+    print(f"{color.YELLOW}No API URL found in config, using default: {config['api_url']} set your own using 'hackdb config url'{color.END}")
+    
+with open(config_path, "w") as f:
+    json.dump(config, f, indent=4)
+
+# - Helpers -
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def print_header():
+        print(color.CYAN + r"""
+╔════════════════════════════╗
+║      HackDB CLI Tool       ║
+╚════════════════════════════╝
+""" + color.END)
+
+
+def show_credits(used=0, total=10, change=0, unlimited=False):
+    bar_length = 20
+    filled = int((used / total) * bar_length)
+    bar = '█' * filled + '-' * (bar_length - filled)
+    icon = "▼" if change < 0 else "▲"
+    
+    if unlimited:
+        bar = 'x' * bar_length  # Full bar for unlimited credits
+    
+        
+    change_text = f"{icon} {abs(change)}% {color.GREEN+'less' if change < 0 else color.RED+'more'} than last week"
+    if change == 0:
+        change_text = "— "+ color.PURPLE+"No change in credits this week"
+    
+
+    if used > total and not unlimited:
+        used = total
+        print(f"{color.RED}Overdrawn!{color.END}")
+    
+    if unlimited:
+        print(f"{color.GREEN}Unlimited!{color.END}")
+    print(f"{color.YELLOW}Credits Used:{color.END} {used}/{total if not unlimited else '∞'}")
+    print(f"[{bar}]")
+    print("\n")
+    print(f"{change_text}{color.END}")
+
+# - helpers -
+
 
 def login(args):
-    print("HackDB " + "indev1" + " - CLI")
+    print_header()
     print("""What method would you like to use to login?
-        1. (WIP)Username and Password
-        2. SDK Token (offers limited access)
-        3. Slack OAUTH (requires a hackclub slack account)
-        4. (WIP)Hexagonical Auth
+        1. SDK Token (offers limited access)
+        2. Slack OAUTH (requires a hackclub slack account)
+
  """)
     
-    choice = input("Enter your choice (1-4): ")
+    choice = input("Enter your choice (1-2): ")
     
 
-    if choice == '1':
+    if choice == '3':
 
         username = input("Enter your username: ")
         password = input("Enter your password: ")
@@ -37,17 +104,30 @@ def login(args):
         config['method'] = "username_password"
         config['username'] = username
         config['password'] = password
-    elif choice == '2':
+    elif choice == '1':
         token = input("Enter your SDK Token: ")
         if not token.startswith("hkdb_tkn_"):
             print("Invalid SDK Token format. Exiting...")
             exit(1)
+
+        print(f"Logging in with SDK Token")
+
+        response = requests.get(config['api_url']+"/validatetoken", headers={
+            "Authorization": f"Bearer {token}"
+        })
         
-        print(f"Logging in with SDK Token: {"*"*token.count()}")
+        if response.status_code == 500:
+            print("Server error. Please try again later.")
+            exit(1)
         
+        if response.status_code != 200:
+            print("Invalid SDK Token. Please try again.")
+            exit(1)
+
         config['method'] = "sdk_token"
         config['token'] = token
-    elif choice == '3':
+        print(f"{color.GREEN}Success! :){color.END}")
+    elif choice == '2':
         print("Redirecting to Slack OAUTH...")
         print("Please follow the instructions in your browser to complete the Slack OAUTH process.")
         print("After completing the process, return here to continue.")
@@ -57,7 +137,7 @@ def login(args):
         while shouldPoll:
             print("Polling server...")
             result = requests.get
-
+            time.sleep(2) 
         
 
         config['method'] = "slack_oauth"
@@ -70,13 +150,52 @@ def login(args):
     else:
         print("Invalid choice. Please try again.")
     #save config file
-    open("~/.hackdb/config.json", mode="rw") 
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=4)
 
 def status(args):
-    print("Status: OK")
+    print_header()
+    invalid = False
+    if config.get("method") is None:
+        print(f"{color.RED}You are not logged in!{color.END}")
+        print("Please login using 'hackdb login'")
+        return
+    
+    print(f"{color.YELLOW}Current Method:{color.END} {config['method']}")
+    
+    if config['method'] == "sdk_token":
+        
+        response = requests.get(config['api_url']+"/validatetoken", headers={
+            "Authorization": f"Bearer {config['token']}"
+        })
+        if response.status_code == 500:
+            print("Server error. Please try again later.")
+            return
 
-def credits():
-    print("You have 1 credit remaining.")
+        print(f"{color.YELLOW}SDK Token:{color.END} {config['token'][:16] + '*' * 16} (Valid: {not invalid})")
+    elif config['method'] == "slack_oauth":
+        print(f"{color.YELLOW}Slack User ID:{color.END} {config.get('slack_user_id', 'Not set')}")
+
+def credits(args):
+    print_header()
+    show_credits(used=23, total=100, change=12, unlimited=False)
+    
+def configure(args):
+    if args.option == 'url':
+        new_url = input("Enter the new API URL: ")
+        config['api_url'] = new_url
+        print(f"API URL updated to: {new_url}")
+    elif args.option == 'logout':
+        config.clear()
+        print("Logged out successfully. Configuration cleared.")
+    else:
+        print("Invalid option. Use 'url' to set API URL or 'logout' to clear configuration.")
+    
+    #save config file
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=4)
+        
+def databases(args):
 
 def main():
     parser = argparse.ArgumentParser(prog='hackdb', description='HackDB CLI')
@@ -92,6 +211,16 @@ def main():
 
     # hackdb credits
     parser_credits = subparsers.add_parser('credits', help='Show user credits')
+    parser_credits.set_defaults(func=credits)
+    
+    # hackdb config
+    parser_config = subparsers.add_parser('config', help='Configure HackDB CLI')
+    parser_config.add_argument('option', choices=['url', 'logout'], help='Configuration option to set')
+    parser_config.set_defaults(func=configure)
+    
+    # hackdb databases
+    parser_databases = subparsers.add_parser('databases', help='Show databases')
+    parser_databases.set_defaults(func=databases)
 
     args = parser.parse_args()
     args.func(args)

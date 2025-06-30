@@ -51,7 +51,7 @@ function RootLayout({ children }: React.PropsWithChildren) {
 function EditorLayout({ children}: React.PropsWithChildren) {
   const { dbid } = useParams();
     // const [loading, setLoading] = useState(true);
-    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges, selectedTable, setData, setSelectedRows, addingNewColumn, setAddingNewColumn, setRefreshKey, failedToGetData } = useEditorContext();
+    const { changes, limit, setLimit, offset, setOffset, selectedRows, timetaken, data, setChanges, selectedTable, setData, setSelectedRows, addingNewColumn, setAddingNewColumn, setRefreshKey, failedToGetData, setNewRow, newRow } = useEditorContext();
 
     const handleCommit = () => {
         console.log("Commit changes");
@@ -72,6 +72,24 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                 toast.error("Error committing changes");
             });
         setChanges([]);
+    }
+
+    const handleAddRow = () => {
+        console.log("Add new row");
+        setChanges(prev => [
+            ...prev,
+            {
+                where: {},
+                table: selectedTable,
+                type: "insert",
+                timestamp: new Date().toISOString(),
+                payload: newRow || {}, 
+            }
+        ]);
+        setData(prev => [...prev, { ...newRow, hiddenRowIDforFrontend: Date.now() }]); 
+        setNewRow({}); 
+        setAddingNewColumn(false);
+        toast.success("New row added to changes. Please commit to save.");
     }
 
     return (
@@ -96,7 +114,7 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                                 <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
                               </div>
 
-                              {addingNewColumn ? <><Button variant="default" onClick={() => { setAddingNewColumn(false); }}><Check /> Save Changes</Button> <Button variant="ghost" size="sm" onClick={() => { setAddingNewColumn(false); }}><span>Cancel</span></Button></> : <Button variant="outline" onClick={() => { setAddingNewColumn(true); }}><Plus /> Add Row</Button>}
+                              {addingNewColumn ? <><Button variant="default" onClick={() => { handleAddRow() }}><Check /> Save Changes</Button> <Button variant="ghost" size="sm" onClick={() => { setAddingNewColumn(false); }}><span>Cancel</span></Button></> : <Button variant="outline" onClick={() => { setAddingNewColumn(true); }}><Plus /> Add Row</Button>}
 
                               {selectedRows.length > 0 && (
                               <Button variant="destructive" onClick={() => {

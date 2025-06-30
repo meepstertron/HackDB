@@ -1,5 +1,6 @@
+import datetime
 from app import db
-from .models import Tokens, Usertables, Databases
+from .models import Tokens, Usertables, Databases, Users,CreditsHistory
 
 def checkToken(token: str) -> bool:
     """
@@ -121,3 +122,114 @@ def _convert_to_sql_type(value):
         return "NULL"
     else:
         raise ValueError(f"Unsupported value type: {type(value)}")
+    
+    
+    
+class Credits:
+    """
+    A class to handle credit operations.
+    """
+    
+    @staticmethod
+    def get_credits(token: str) -> int:
+        """
+        Get the number of credits for a token.
+        """
+        if not checkToken(token):
+            return 0
+        
+        token_entry = db.session.query(Tokens).filter(Tokens.c.key == token).first()
+        user = db.session.query(Users).filter(Users.id == token_entry['userid']).first()
+        if not user:
+            return 0
+        if user.quota is None:
+            user.quota = 0
+            db.session.commit()
+
+        return user.quota
+    
+    
+    @staticmethod
+    def log_credits(user_id, action, credits_spent):
+        history = CreditsHistory(
+            user_id=user_id,
+            action=action,
+            credits_spent=credits_spent
+        )
+        
+        
+        user = db.session.query(Users).filter(Users.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+        user.quota -= credits_spent
+        if user.quota < 0:
+            user.quota = 0
+            raise ValueError("Insufficient credits")
+            
+        db.session.add(history)
+        db.session.commit()
+        
+    def get_credits_change(weeks=1):
+        """
+        Get the change in credits over the last few weeks. in percentage.
+        """
+        if weeks < 1:
+            raise ValueError("Weeks must be at least 1")
+        
+        # Get the current week
+        current_week = db.session.query(CreditsHistory).filter(CreditsHistory.created_at >= db.func.date_trunc('week', db.func.now())).all()
+        
+        # Get the previous weeks
+        previous_weeks = db.session.query(CreditsHistory).filter(CreditsHistory.created_at < db.func.date_trunc('week', db.func.now())).order_by(CreditsHistory.created_at.desc()).limit(weeks).all()
+        
+        current_credits = sum(entry.credits_spent for entry in current_week)
+        previous_credits = sum(entry.credits_spent for entry in previous_weeks)
+
+        if previous_credits == 0:
+            return 0
+
+        return (current_credits - previous_credits) / previous_credits * 100
+    
+    
+    @staticmethod
+    def get_used_credits_this_week(user_id):
+        now = datetime.utcnow()
+        week_ago = now - datetime.timedelta(days=7)
+        used = db.session.query(db.func.sum(CreditsHistory.credits_spent)).filter(
+            CreditsHistory.user_id == user_id,
+            CreditsHistory.created_at >= week_ago
+        ).scalar()
+        return used or 0
+
+    @staticmethod
+    def get_used_credits_last_week(user_id):
+        now = datetime.utcnow()
+        week_ago = now - datetime.timedelta(days=7)
+        two_weeks_ago = now - datetime.timedelta(days=14)
+        used = db.session.query(db.func.sum(CreditsHistory.credits_spent)).filter(
+            CreditsHistory.user_id == user_id,
+            CreditsHistory.created_at >= two_weeks_ago,
+            CreditsHistory.created_at < week_ago
+        ).scalar()
+        return used or 0
+
+    @staticmethod
+    def get_change_percent(user_id):
+        this_week = Credits.get_used_credits_this_week(user_id)
+        last_week = Credits.get_used_credits_last_week(user_id)
+        if last_week == 0:
+            return 0
+        return ((this_week - last_week) / last_week) * 100
+
+    @staticmethod
+    def get_history(user_id, limit=10):
+        history = db.session.query(CreditsHistory).filter(
+            CreditsHistory.user_id == user_id
+        ).order_by(CreditsHistory.created_at.desc()).limit(limit).all()
+        return [
+            {
+                "action": h.action,
+                "credits_spent": h.credits_spent,
+                "created_at": h.created_at.isoformat()
+            } for h in history
+        ]

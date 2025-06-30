@@ -71,6 +71,20 @@ def commit_change(change:dict, db_id, user_id):
             raise ValueError("Change must include a 'table' key with the table ID.")
         
         where = helpers.whereObjectParser(change.get("where", {}))
+        
+        
+        if change.get("type") == "insert":
+            payload = change.get("payload")
+            if payload is None:
+                raise ValueError("Change of type 'insert' must include a 'payload' key with the data to insert.")
+            
+            columns = ', '.join(payload.keys())
+            placeholders = ', '.join([f":{key}" for key in payload.keys()])
+            query = text(f"""
+                INSERT INTO "{actual_table_name}" ({columns}) 
+                VALUES ({placeholders})
+            """)
+            params = payload
 
         if change.get("type") == "edit":
             column = change.get("column")

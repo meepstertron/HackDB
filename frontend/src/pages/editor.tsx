@@ -59,11 +59,11 @@ export const constructWhereClause = (row: any ) => { //give whole row as input!!
 function TableEditor() {
 
     const { dbid } = useParams();
-    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData } = useEditorContext();
+    const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData, newRow, setNewRow } = useEditorContext();
 
 
     const [structure, setStructure] = useState<any[]>([]);
-    const [newRow, setNewRow] = useState<any>({});
+
 
 
     // useEffect(() => {

@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
 
 interface User {
+    username: ReactNode;
     // Define user properties as needed, e.g.:
     id?: string;
     name?: string;

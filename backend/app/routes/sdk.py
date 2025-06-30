@@ -46,7 +46,22 @@ def get_tables():
     logging.info(f"Token belongs to dbid: {dbid}")
     if not dbid:
         return jsonify({"error": "token doesnt belong to any db? please report to github issues"}), 404
-
+    try:
+        helpers.Credits.log_credits(
+            user_id=token_row.user_id,
+            db_id=dbid,
+            action="get_tables",
+            description="User fetched the list of tables in their database.",
+            amount=0.1
+        )
+        
+    except ValueError("Insufficient credits"):
+        logging.error("Insufficient credits to log this action")
+        return jsonify({"error": "Insufficient credits"}), 402
+    except Exception as e:
+        
+        logging.error(f"Error logging credits: {e}")
+        return jsonify({"error": "Failed to bill credits"}), 500
     tables = db.session.query(Usertables).filter(Usertables.db == dbid).all()
     if not tables:
         return jsonify([]), 404
@@ -205,3 +220,80 @@ def count_table_data(table_name):
             query = text(f"SELECT COUNT(*) FROM \"{actual_table_name}\" " + helpers.whereObjectParser(where=lookup_string))
         result = connection.execute(query).scalar()
         return jsonify({"count": result}), 200
+    
+    
+    
+    
+# CLI SECTION
+@sdk.route('/cli/credits', methods=['GET'])
+def cli_credits():
+    token = request.headers.get('Authorization')
+    method = request.args.get('method', None)
+    
+    if not method or method not in ['sdk_token', 'slack_oauth', 'hexagonical_auth']:
+        return jsonify({"error": "Invalid or missing method"}), 400
+    
+    if method == 'sdk_token':
+        if not token or not re.match(r"^Bearer hkdb_tkn_[a-f0-9\-]{36}$", token):
+            return jsonify({"error": "Invalid or missing token"}), 401
+        token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
+        if not token_row:
+            return jsonify({"error": "Token not found"}), 404
+    
+    if method == 'slack_oauth':
+        try:
+            if not token or not re.match(r"^Bearer [a-zA-Z0-9\-_.]+$", token):
+                return jsonify({"error": "Invalid or missing token"}), 401
+            try:
+                payload = jwt.decode(token.split(" ")[1], signing_secret, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return jsonify({"error": "Token has expired"}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({"error": "Invalid token"}), 401
+            user_id = payload.get('user_id')
+            if not user_id:
+                return jsonify({"error": "Invalid token"}), 401
+            user = db.session.query(Users).filter(Users.slack_user_id == user_id).first()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+    if method == 'hexagonical_auth':
+        return jsonify({"error": "Hexagonical Auth not implemented yet"}), 501
+    
+    user = db.session.query(Users).filter(Users.id == token_row.user_id if method == 'sdk_token' else user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    
+    return jsonify({
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "credits": user.quota,
+        "used_this_week": helpers.Credits.get_used_credits_this_week(user.id),
+        "used_last_week": helpers.Credits.get_used_credits_last_week(user.id),
+        "change_percent": helpers.Credits.get_change_percent(user.id),
+        "history": helpers.Credits.get_history(user.id)
+    }), 200
+
+
+
+@sdk.route('/cli/databases', methods=['GET'])
+def cli_databases():
+    token = request.headers.get('Authorization')
+    if not token or not re.match(r"^Bearer hkdb_tkn_[a-f0-9\-]{36}$", token):
+        return jsonify({"error": "Invalid or missing token"}), 401
+
+    token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
+    if not token_row:
+        return jsonify({"error": "Token not found"}), 404
+
+    user = db.session.query(Users).filter(Users.id == token_row.user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    databases = db.session.query(Databases).filter(Databases.user_id == user.id).all()
+    return jsonify({"databases": [db.name for db in databases]}), 200
