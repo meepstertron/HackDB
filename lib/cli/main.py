@@ -196,6 +196,7 @@ def configure(args):
         json.dump(config, f, indent=4)
         
 def databases(args):
+    return
 
 def main():
     parser = argparse.ArgumentParser(prog='hackdb', description='HackDB CLI')
