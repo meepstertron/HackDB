@@ -67,8 +67,8 @@ class ModelProxy:
             Supported operators: "equals", "gt", "lt", "gte", "lte", "contains", "in"
             For IntelliSense, use: WHERE_OPERATORS
 
-        order (str): Optional. The field by which to order the results. WIP
-        include (list): Optional. A list of related models to include in the results. WIP
+        order (str): Optional. The field by which to order the results.
+        include (list): Optional. A list of related models to include in the results.
         Returns:
         list: A list of records matching the specified conditions.
         """

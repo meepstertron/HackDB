@@ -1,5 +1,6 @@
 import json
 import time
+import uuid
 from flask import Blueprint, jsonify, request
 import jwt
 
@@ -10,6 +11,66 @@ import os
 from ..models import Users, Databases, Usertables, Tokens
 import re 
 from sqlalchemy import text 
+
+datatypes = {
+    "text": ["text"],
+    "integer": ["integer", "int", "bigint", "smallint", "serial", "bigserial"],
+    "float": ["real", "float4"],
+    "double": ["double precision", "float8"],
+    "boolean": ["boolean"],
+    "cidr": ["cidr"],
+    "date": ["date"],
+    "timestamp": ["timestamp", "timestamp with time zone", "timestamp without time zone"],
+    "json": ["json", "jsonb"]
+}
+
+def clamp_datatype(datatype):
+    """
+    Clamp the datatype to a valid PostgreSQL datatype
+    """
+    for key, values in datatypes.items():
+        if datatype.lower() in values:
+            return key
+    return "text" 
+
+
+def clamp_default(default, logical_table_name, way='human'):
+    """
+    Clamp a default value to a human understandable format
+
+    eg:
+    CURRENT_TIMESTAMP -> now()
+    'default_value' -> 'default_value'
+    42 -> 42
+    nextval('items_4ae15e43_9460_4062_b6d3_731a6fd9fc1c_entry_id_seq'::regclass) -> nextvalue() // the name is the logical name of the table
+    """
+    if way == 'human':
+        if default is None:
+            return None
+        if default == "CURRENT_TIMESTAMP":
+            return "now()"
+        if isinstance(default, str):
+            if default.startswith("'") and default.endswith("'"):
+                return default  # Return as is, it's a string literal
+            elif default.startswith("nextval(") and default.endswith(")"):
+                # Extract the sequence name and format it
+                sequence_name = re.search(r"nextval\('([^']+)'\)", default)
+                if sequence_name:
+                    return f"nextvalue()"
+        return default  # Return as is for other types
+    if way == 'sql':
+        if default is None:
+            return "NULL"
+        if default == "now()":
+            return "CURRENT_TIMESTAMP"
+        if default == "nextvalue()":
+            sanitized_logical_name = re.sub(r'[^a-zA-Z0-9_]', '', logical_table_name)
+            return f"nextval('{sanitized_logical_name}_entry_id_seq'::regclass)"
+        if isinstance(default, str):
+            if default.startswith("'") and default.endswith("'"):
+                return default
+            
+
 
 signing_secret = os.environ["SLACK_SIGNING_SECRET"]
 
@@ -311,7 +372,12 @@ def get_user_db_tables(db_id):
                     # Check if the column is a primary key
                     primary_key_result = connection.execute(text(f"SELECT kcu.column_name FROM information_schema.table_constraints tco JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tco.constraint_name WHERE tco.table_name = '{table.name}_{str(table.id).replace('-', '_')}' AND tco.constraint_type = 'PRIMARY KEY'"))
                     primary_key_columns = [col[0] for col in primary_key_result.fetchall()]
-                    
+
+                    data_type = clamp_datatype(data_type)
+
+                    column_default = clamp_default(column_default, f"{table.name}_{str(table.id).replace('-', '_')}", way='human')
+
+
                     payload.append({
                         "name": column_name,
                         "type": data_type,
@@ -569,17 +635,23 @@ def tokens():
         
         new_token = Tokens(
             name=data['name'],
-            key=jwt.encode({'user_id': user.id, 'db_id': dbid}, signing_secret, algorithm='HS256'),
-            userid=user.id,
-            dbid=dbid
+            key= f'hkdb_tkn_{uuid.uuid4()}',
+            userid=str(user.id),
+            dbid=str(dbid)
         )
         
         db.session.add(new_token)
         db.session.commit()
         
-        return jsonify(message='Token created successfully', token=new_token.key), 201
+        return jsonify(message='Token created successfully', token={
+            'id': str(new_token.id),
+            'name': new_token.name,
+            'dbid': new_token.dbid,
+            'userid': new_token.userid,
+            'key': new_token.key
+        }), 201
     elif request.method == 'DELETE':
-        
+
         token = request.cookies.get('jwt')
         if not token:
             return jsonify(message='Unauthorized'), 401
@@ -649,6 +721,52 @@ def commit_user_db(db_id):
         job = rq.enqueue('app.tasks.commit_change', commit, db_id, user.id)
         commit['job_id'] = job.id
     return jsonify(message='Commit queued successfully', jobs=commitlist), 200
+
+
+@udb.route('/userdbs/<uuid:db_id>/create_table', methods=['POST'])
+def create_user_db_table(db_id):
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify(message='Invalid request: "name" for table is required'), 400
+    token = request.cookies.get('jwt')
+    if not token:
+        return jsonify(message='Unauthorized'), 401 
+    try:
+        payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify(message='Token expired'), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message='Invalid token'), 401
+    except Exception as e:
+        logging.error(f"Error decoding JWT: {e}")
+        return jsonify(message='Invalid token: Unknown error'), 401
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+    if not user:
+        return jsonify(message='User not found'), 404
+    selected_db = db.session.query(Databases).filter_by(id=db_id, owner=user.id).first()
+    if not selected_db:
+        return jsonify(message='Database not found'), 404
+    
+    
+    new_usertable_metadata = Usertables(
+        name=data['name'],
+        db=selected_db.id
+    )
+    db.session.add(new_usertable_metadata)
+    db.session.flush()
+    logical_table_name = new_usertable_metadata.name+f"_{str(new_usertable_metadata.id).replace('-', '_')}"
+    
+    userdb_engine = db.get_engine(bind='userdb')
+    with userdb_engine.connect() as connection:
+        connection.execute(text(f"CREATE TABLE {logical_table_name} (id SERIAL PRIMARY KEY, data JSONB)"))
+        connection.commit()
+        
+    db.session.commit()
+    return jsonify(
+        message='Table created successfully'), 201
+
+    
+    
 
 
 

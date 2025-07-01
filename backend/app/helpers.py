@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 from app import db
 from .models import Tokens, Usertables, Databases, Users,CreditsHistory
 
@@ -94,11 +94,11 @@ def whereObjectParser(where: dict):
                 if operation in ['lte', 'le', 'lessthanequal']:
                     where_list.append(f"{column} <= {_convert_to_sql_type(value)}")
                 if operation == 'contains':
-                    where_list.append(f"{column} LIKE '%{_convert_to_sql_type(value)}%'")
+                    where_list.append(f"{column} LIKE '%{value}%'")
                 if operation == 'startswith':
-                    where_list.append(f"{column} LIKE '{_convert_to_sql_type(value)}%'")
+                    where_list.append(f"{column} LIKE '{value}%'")
                 if operation == 'endswith':
-                    where_list.append(f"{column} LIKE '%{_convert_to_sql_type(value)}'")
+                    where_list.append(f"{column} LIKE '%{value}'")
 
 
         else:
@@ -169,6 +169,50 @@ class Credits:
         db.session.add(history)
         db.session.commit()
         
+    @staticmethod
+    def charge_credits(user_id, credits_needed, action=""):
+        user = db.session.query(Users).filter(Users.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+
+        # Unlimited users never get charged
+        if getattr(user, "unlimited", False):
+            history = CreditsHistory(
+                user_id=user_id,
+                action=action or "unlimited",
+                credits_spent=0
+            )
+            db.session.add(history)
+            db.session.commit()
+            return
+
+        # Calculate how much of the weekly allowance is left
+        used_this_week = Credits.get_used_credits_this_week(user_id)
+        weekly_left = max(user.weekly_allowance - used_this_week, 0)
+        purchased_left = user.purchased_credits or 0
+
+        # Check if enough credits
+        total_available = weekly_left + purchased_left
+        if credits_needed > total_available:
+            raise ValueError("Insufficient credits")
+
+        # Deduct from weekly allowance first, then purchased
+        from_weekly = min(credits_needed, weekly_left)
+        from_purchased = credits_needed - from_weekly
+
+        # Update purchased_credits if needed
+        if from_purchased > 0:
+            user.purchased_credits -= from_purchased
+
+        # Log the charge
+        history = CreditsHistory(
+            user_id=user_id,
+            action=action,
+            credits_spent=credits_needed
+        )
+        db.session.add(history)
+        db.session.commit()
+        
     def get_credits_change(weeks=1):
         """
         Get the change in credits over the last few weeks. in percentage.
@@ -194,22 +238,26 @@ class Credits:
     @staticmethod
     def get_used_credits_this_week(user_id):
         now = datetime.utcnow()
-        week_ago = now - datetime.timedelta(days=7)
+        start_of_week = now - timedelta(days=now.weekday())
+        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         used = db.session.query(db.func.sum(CreditsHistory.credits_spent)).filter(
             CreditsHistory.user_id == user_id,
-            CreditsHistory.created_at >= week_ago
+            CreditsHistory.created_at >= start_of_week
         ).scalar()
         return used or 0
 
     @staticmethod
     def get_used_credits_last_week(user_id):
         now = datetime.utcnow()
-        week_ago = now - datetime.timedelta(days=7)
-        two_weeks_ago = now - datetime.timedelta(days=14)
+        
+        start_of_week = now - timedelta(days=now.weekday())
+        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        start_of_last_week = start_of_week - timedelta(days=7)
         used = db.session.query(db.func.sum(CreditsHistory.credits_spent)).filter(
             CreditsHistory.user_id == user_id,
-            CreditsHistory.created_at >= two_weeks_ago,
-            CreditsHistory.created_at < week_ago
+            CreditsHistory.created_at >= start_of_last_week,
+            CreditsHistory.created_at < start_of_week
         ).scalar()
         return used or 0
 

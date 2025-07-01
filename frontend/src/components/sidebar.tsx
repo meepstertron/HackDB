@@ -12,7 +12,7 @@ import { TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
-import { getDatabaseTables, getUsersDatabases, tableAction } from "@/lib/api";
+import { createTable, getDatabaseTables, getUsersDatabases, tableAction } from "@/lib/api";
 import { useEditorContext } from "@/editorContext";
 import { DBSwitcher } from "./dbswitcher";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "./ui/context-menu";
@@ -148,11 +148,11 @@ function EditorSidebar() {
                                 <PopoverContent className="w-72" side="right">
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
-                                        // Handle create table logic here
+                                        createTable((e.currentTarget.elements.namedItem("tableName") as HTMLInputElement).value, dbid || "")
                                     }}>
                                         <span>New Table</span>
                                         <div className="flex flex-col gap-2 mt-2">
-                                            <Input placeholder="Table Name" type="text" />
+                                            <Input placeholder="Table Name" type="text" name="tableName" />
                                             <Button variant="outline" className="w-full" type="submit" >Create</Button>
                                         </div>
                                     </form>

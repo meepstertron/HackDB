@@ -38,7 +38,7 @@ else:
 if config.get("instanceid") is None:
     config["instanceid"] = str(uuid.uuid4())
 if config.get("api_url") is None:
-    config["api_url"] = "https://hackdb.hexagonical.ch/api/sdk/v1"
+    config["api_url"] = "https://condor-willing-buck.ngrok-free.app/api/sdk/v1"
     print(f"{color.YELLOW}No API URL found in config, using default: {config['api_url']} set your own using 'hackdb config url'{color.END}")
     
 with open(config_path, "w") as f:
@@ -55,8 +55,7 @@ def print_header():
 ╚════════════════════════════╝
 """ + color.END)
 
-
-def show_credits(used=0, total=10, change=0, unlimited=False):
+def show_credits(used=0, total=10, change=0, unlimited=False, extra_credits=0):
     bar_length = 20
     filled = int((used / total) * bar_length)
     bar = '█' * filled + '-' * (bar_length - filled)
@@ -77,7 +76,8 @@ def show_credits(used=0, total=10, change=0, unlimited=False):
     
     if unlimited:
         print(f"{color.GREEN}Unlimited!{color.END}")
-    print(f"{color.YELLOW}Credits Used:{color.END} {used}/{total if not unlimited else '∞'}")
+    extra_credits_text = f"| {color.GREEN}+{extra_credits} extra {color.END}" if extra_credits > 0 else ''
+    print(f"{color.YELLOW}Credits Used:{color.END} {used}/{total if not unlimited else '∞'} {extra_credits_text}")
     print(f"[{bar}]")
     print("\n")
     print(f"{change_text}{color.END}")
@@ -111,6 +111,9 @@ def login(args):
             exit(1)
 
         print(f"Logging in with SDK Token")
+        
+
+        
 
         response = requests.get(config['api_url']+"/validatetoken", headers={
             "Authorization": f"Bearer {token}"
@@ -124,23 +127,79 @@ def login(args):
             print("Invalid SDK Token. Please try again.")
             exit(1)
 
-        config['method'] = "sdk_token"
-        config['token'] = token
-        print(f"{color.GREEN}Success! :){color.END}")
+
+        if response.json().get("valid") is True:
+            config['method'] = "sdk_token"
+            config['token'] = token
+            print(f"{color.GREEN}Success! :){color.END}")
+        
+        else:
+            print(f"{color.RED}Invalid SDK Token.{color.END}")
+            exit(1)
     elif choice == '2':
+
+        #open page with redirect to hackdb.hexagonical.ch/api/cli/slackauth?instanceid={config.instanceid}
+        
+        
+        result = requests.get(config['api_url']+"/cli/slackauthresult", params={"instanceid": config["instanceid"]})
+        if result.json().get("token") is not None:
+            print(f"{color.GREEN}There was a record already associated with this account. Use?{color.END}")
+            answer = input("(y/n): ").strip().lower()
+            if answer == 'y':
+                config['method'] = "slack_oauth"
+                config['token'] = result.json()['token']
+                config['slack_user_id'] = result.json()['slack_id']
+                config['user_id'] = result.json()['user_id']
+                print(f"{color.GREEN}Success! :){color.END}")
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=4)
+                exit(0)
+                
+        
         print("Redirecting to Slack OAUTH...")
         print("Please follow the instructions in your browser to complete the Slack OAUTH process.")
         print("After completing the process, return here to continue.")
-        #open page with redirect to hackdb.hexagonical.ch/api/cli/slackauth?instanceid={config.instanceid}
         
-        shouldPoll = True # value to tell it if it should poll server for oauth data
-        while shouldPoll:
-            print("Polling server...")
-            result = requests.get
-            time.sleep(2) 
+                #open webpage in browser
+        try:
+            os.system(f'start {config["api_url"]}/cli/slackauth?instanceid={config["instanceid"]}')
+        except Exception as e:
+            print(f"Error opening browser: {e}")
+            print("Please open the following URL in your browser:")
+            print(f"{config['api_url']}/cli/slackauth?instanceid={config['instanceid']}")
+            
         
 
-        config['method'] = "slack_oauth"
+
+        shouldPoll = True # value to tell it if it should poll server for oauth data
+        pollcount = 0
+        while shouldPoll:
+            print("Polling server...")
+            result = requests.get(config['api_url']+"/cli/slackauthresult", params={"instanceid": config["instanceid"]})
+            time.sleep(2)
+            pollcount += 1
+            if pollcount > 20:
+                print("Polling timed out. Please try again.")
+                exit(1)
+            if result.status_code == 200 and result.json().get("token") is not None:
+                config['method'] = "slack_oauth"
+                config['token'] = result.json()['token']
+                config['slack_user_id'] = result.json()['slack_id']
+                config['user_id'] = result.json()['user_id']
+                print(f"{color.GREEN}Success! :){color.END}")
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=4)
+                shouldPoll = False
+                exit(0)
+            elif result.status_code == 500:
+                print("Server error. Please try again later.")
+                exit(1)
+
+
+        print(f"{color.RED}Unexpected error.{color.END}")
+        exit(1)
+
+        
     elif choice == '4':
         print("Redirecting to Hexagonical Auth...")
         print("Please follow the instructions in your browser to complete the Hexagonical Auth process.")
@@ -177,8 +236,26 @@ def status(args):
         print(f"{color.YELLOW}Slack User ID:{color.END} {config.get('slack_user_id', 'Not set')}")
 
 def credits(args):
+    if config.get("method") is None:
+        print(f"{color.RED}You are not logged in!{color.END}")
+        print("Please login using 'hackdb login'")
+        return
+
+    response = requests.get(config['api_url']+"/cli/credits?method="+config['method'], headers={
+        "Authorization": f"Bearer {config['token']}"
+    })
+    
+    if response.status_code == 500:
+        print("Server error. Please try again later.")
+        return
+    if response.status_code != 200:
+        print(f"{color.RED}Error fetching credits: {response.json().get('error', 'Unknown error')}{color.END}")
+        return
+    data = response.json()
+
     print_header()
-    show_credits(used=23, total=100, change=12, unlimited=False)
+    show_credits(used=data.get("used_this_week"), total=data.get('credits'), change=data.get("change_percent"), unlimited=data.get('unlimited', False), extra_credits=data.get('extra_credits', 0))
+    
     
 def configure(args):
     if args.option == 'url':

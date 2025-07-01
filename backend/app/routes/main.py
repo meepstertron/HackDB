@@ -3,7 +3,7 @@ from app import db, rq
 import os
 from uuid import uuid4
 from slack_sdk import WebClient
-from ..models import Users
+from ..models import Users, CLIAuthState
 import jwt
 
 client_id = os.environ["SLACK_CLIENT_ID"]
@@ -53,9 +53,9 @@ def post_install():
             client_secret=client_secret,
             code=auth_code
         )
-    elif received_state.startswith("cli-"):
+    elif received_state.startswith("cli_"):
         response = client.oauth_v2_access(
-            client_id=client,
+            client_id=client_id,
             client_secret=client_secret,
             code=auth_code
         )
@@ -87,8 +87,33 @@ def post_install():
                 db.session.add(user)
                 db.session.commit()
 
-            
-            
+            if received_state.startswith("cli_"):
+                instance_id = received_state[len("cli_"):]
+
+                cli_state = db.session.query(CLIAuthState).filter_by(instance_id=instance_id).first()
+                if cli_state:
+                    cli_state.slack_user_id = slack_user_id
+                    cli_state.verified = True
+                else:
+                    
+                    user = db.session.query(Users).filter_by(slack_user_id=slack_user_id).first()
+                    if not user:
+                        return "Error: User not found"
+                    cli_state = CLIAuthState(instance_id=instance_id, slack_user_id=slack_user_id, author_id=user.id, verified=True)
+                    db.session.add(cli_state)
+                db.session.commit()
+
+                return """
+            <html>
+            <head>
+            <title>Slack Auth Successful</title>
+            </head>
+            <body>
+            <h1>Slack Auth Successful</h1>
+            <p>Your Slack account has been successfully authenticated. Please return to the cli</p>
+            </body>
+            """
+
             response = make_response()
             jwt_token = jwt.encode({"user_id": str(user.id)}, signing_secret, algorithm="HS256")
             response = make_response(redirect("https://hackdb.hexagonical.ch/home"))

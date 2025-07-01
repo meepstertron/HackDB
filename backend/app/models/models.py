@@ -1,6 +1,7 @@
 from typing import List, Optional
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Table, Text, Uuid, text
+from sqlalchemy import Column, DateTime, ForeignKeyConstraint, Float, Integer, PrimaryKeyConstraint, Table, Text, Uuid, text, Boolean, Double
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import datetime
 import uuid
@@ -22,7 +23,9 @@ class Users(Base):
     email: Mapped[str] = mapped_column(Text)
     quota: Mapped[Optional[int]] = mapped_column(Integer, server_default=text('100'))
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))
-
+    weekly_allowance: Mapped[int] = mapped_column(Integer, server_default=text('100'))  # or whatever default
+    purchased_credits: Mapped[float] = mapped_column(Double, server_default=text('0'))
+    unlimited: Mapped[bool] = mapped_column(Boolean, server_default=text('false'))
     databases: Mapped[List['Databases']] = relationship('Databases', back_populates='users')
 
 
@@ -98,5 +101,13 @@ class CreditsHistory(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('gen_random_uuid()'))
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     action: Mapped[str] = mapped_column(Text, nullable=False)
-    credits_spent: Mapped[int] = mapped_column(Integer, nullable=False)
+    credits_spent: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'))
+    
+class CLIAuthState(Base):
+    __tablename__ = 'cli_auth_states'
+    instance_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    slack_user_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    author_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, nullable=True)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

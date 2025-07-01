@@ -49,3 +49,15 @@ Availible commands:
 - `hackdb drop <database id>` - irreversibely drops a database
 - `hackdb table list -d <database name>`
 - `hackdb table ` 
+
+
+
+# Contact
+
+[jan.koch@hexagonical.ch]() - for legal/personal matters
+
+or
+
+[support@hexagonical.ch]() - General Support
+
+MIT Licence - https://hexagonical.ch

@@ -1,5 +1,5 @@
 import time
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, redirect, request
 import jwt
 
 import json
@@ -10,7 +10,7 @@ import logging
 from .. import helpers
 
 import os
-from ..models import Users, Databases, Usertables, Tokens
+from ..models import Users, Databases, Usertables, Tokens, CLIAuthState
 import re 
 from sqlalchemy import text 
 
@@ -43,20 +43,19 @@ def get_tables():
 
     token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
     dbid = token_row.dbid if token_row else None
+    user  = db.session.query(Users).filter(Users.id == token_row.userid).first() if token_row else None
     logging.info(f"Token belongs to dbid: {dbid}")
     if not dbid:
         return jsonify({"error": "token doesnt belong to any db? please report to github issues"}), 404
     try:
-        helpers.Credits.log_credits(
-            user_id=token_row.user_id,
-            db_id=dbid,
-            action="get_tables",
-            description="User fetched the list of tables in their database.",
-            amount=0.1
+        helpers.Credits.charge_credits(
+            user_id=user.id,
+            credits_needed=0.1,
+            action="get_tables"
         )
         
-    except ValueError("Insufficient credits"):
-        logging.error("Insufficient credits to log this action")
+    except ValueError:
+        logging.error("Insufficient credits to charge this action")
         return jsonify({"error": "Insufficient credits"}), 402
     except Exception as e:
         
@@ -68,7 +67,22 @@ def get_tables():
     table_list = [table.name for table in tables]
     return jsonify(table_list), 200
 
+@sdk.route('/credits', methods=['GET'])
+def get_credits():
+    token = request.headers.get('Authorization')
+    if not token or not re.match(r"^Bearer hkdb_tkn_[a-f0-9\-]{36}$", token):
+        return jsonify({"error": "Invalid or missing token"}), 401
+    
+    logging.info(f"Received token: {token}")
 
+
+    token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
+    user  = db.session.query(Users).filter(Users.id == token_row.userid).first() if token_row else None
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    
+    
 
 @sdk.route('/tables/<table_name>/findmany', methods=['GET'])
 def get_table_data(table_name):
@@ -76,6 +90,16 @@ def get_table_data(table_name):
     params = request.args
     lookup_string_param = params.get('lookup_string', None)
     lookup_string = None
+    limit_param = params.get('limit', None)
+    if limit_param is not None:
+        try:
+            limit = int(limit_param)
+            if limit <= 0:
+                return jsonify({"error": "Limit must be a positive integer"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid limit value"}), 400
+    
+    
     if lookup_string_param is not None:
         lookup_string = json.loads(lookup_string_param)
     logging.info(f"Lookup string: {lookup_string}")
@@ -96,16 +120,57 @@ def get_table_data(table_name):
 
     actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
 
+    user = db.session.query(Users).filter(Users.id == token_row.userid).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        helpers.Credits.charge_credits(
+            user_id=user.id,
+            credits_needed=0.2,
+            action="get_table_data"
+        )
+        
+    except ValueError:
+        logging.error("Insufficient credits to charge this action")
+        return jsonify({"error": "Insufficient credits"}), 402
+    except Exception as e:
+        
+        logging.error(f"Error logging credits: {e}")
+        return jsonify({"error": "Failed to bill credits"}), 500
+
+
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
         if lookup_string is not None:
-            query = text(f"SELECT * FROM \"{actual_table_name}\" " + helpers.whereObjectParser(where=lookup_string))
+            query = text(f"SELECT * FROM \"{actual_table_name}\" LIMIT {limit}" + helpers.whereObjectParser(where=lookup_string))
             result = connection.execute(query).fetchall()
-            return jsonify([row._asdict() for row in result]), 200
+            
         else:
             # if no lookup string is provided, fetch all data
-            result = connection.execute(text(f"SELECT * FROM \"{actual_table_name}\"")).fetchall()
-            return jsonify([row._asdict() for row in result]), 200
+            result = connection.execute(text(f"SELECT * FROM \"{actual_table_name}\" LIMIT {limit}")).fetchall()
+            
+        connection.commit()
+
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        try:
+            helpers.Credits.charge_credits(
+                user_id=user.id,
+                credits_needed=0.2*(len(result)/100),
+                action="get_table_data"
+            )
+            
+        except ValueError:
+            logging.error("Insufficient credits to charge this action")
+            return jsonify({"error": "Insufficient credits"}), 402
+        except Exception as e:
+            
+            logging.error(f"Error logging credits: {e}")
+            return jsonify({"error": "Failed to bill credits"}), 500
+        
+        return jsonify([row._asdict() for row in result]), 200
+            
+        
 
 
 
@@ -134,6 +199,25 @@ def delete_table_data(table_name):
         return jsonify({"error": "Table not found"}), 404
 
     actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+
+    user = db.session.query(Users).filter(Users.id == token_row.userid).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        helpers.Credits.charge_credits(
+            user_id=user.id,
+            credits_needed=0.2,
+            action="delete_table_data"
+        )
+        
+    except ValueError:
+        logging.error("Insufficient credits to charge this action")
+        return jsonify({"error": "Insufficient credits"}), 402
+    except Exception as e:
+        
+        logging.error(f"Error logging credits: {e}")
+        return jsonify({"error": "Failed to bill credits"}), 500
+
 
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
@@ -170,6 +254,25 @@ def create_table_data(table_name):
         return jsonify({"error": "Table not found"}), 404
 
     actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+    
+    user = db.session.query(Users).filter(Users.id == token_row.userid).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        helpers.Credits.charge_credits(
+            user_id=user.id,
+            credits_needed=0.2,
+            action="create_table_data"
+        )
+        
+    except ValueError:
+        logging.error("Insufficient credits to charge this action")
+        return jsonify({"error": "Insufficient credits"}), 402
+    except Exception as e:
+        
+        logging.error(f"Error logging credits: {e}")
+        return jsonify({"error": "Failed to bill credits"}), 500
+    
 
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
@@ -209,6 +312,24 @@ def count_table_data(table_name):
         return jsonify({"error": "Table not found"}), 404
 
     actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+    
+    user = db.session.query(Users).filter(Users.id == token_row.userid).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        helpers.Credits.charge_credits(
+            user_id=user.id,
+            credits_needed=0.05,
+            action="count_table_data"
+        )
+        
+    except ValueError:
+        logging.error("Insufficient credits to charge this action")
+        return jsonify({"error": "Insufficient credits"}), 402
+    except Exception as e:
+        logging.error(f"Error logging credits: {e}")
+        return jsonify({"error": "Failed to bill credits"}), 500
+
 
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
@@ -263,7 +384,7 @@ def cli_credits():
     if method == 'hexagonical_auth':
         return jsonify({"error": "Hexagonical Auth not implemented yet"}), 501
     
-    user = db.session.query(Users).filter(Users.id == token_row.user_id if method == 'sdk_token' else user_id).first()
+    user = db.session.query(Users).filter(Users.id == token_row.userid if method == 'sdk_token' else user_id).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
     
@@ -272,7 +393,9 @@ def cli_credits():
         "user_id": user.id,
         "username": user.username,
         "email": user.email,
-        "credits": user.quota,
+        "credits": user.weekly_allowance,
+        "unlimited": user.unlimited,
+        "extra_credits": user.purchased_credits,
         "used_this_week": helpers.Credits.get_used_credits_this_week(user.id),
         "used_last_week": helpers.Credits.get_used_credits_last_week(user.id),
         "change_percent": helpers.Credits.get_change_percent(user.id),
@@ -297,3 +420,43 @@ def cli_databases():
 
     databases = db.session.query(Databases).filter(Databases.user_id == user.id).all()
     return jsonify({"databases": [db.name for db in databases]}), 200
+
+
+@sdk.route('/cli/slackauth', methods=['GET'])
+def cli_slack_auth():
+    instance_id = request.args.get("instanceid")
+    
+    
+    db.session.query(CLIAuthState).filter_by(instance_id=instance_id).delete()
+    db.session.commit()
+    
+        
+    state = "cli_"+instance_id
+
+    client_id = os.environ.get("SLACK_CLIENT_ID")
+    if not client_id:
+        return jsonify({"error": "Server Config error"}), 500
+    
+    
+    oauth_scopes = [
+        "identity.basic",
+        "identity.email",
+    ]
+    oauth_scope = ','.join(oauth_scopes)    
+
+    return redirect(f"https://slack.com/oauth/v2/authorize?user_scope={oauth_scope}&client_id={client_id}&state={state}")
+
+
+@sdk.route("/cli/slackauthresult", methods=["GET"])
+def poll_cli_login():
+    instance_id = request.args.get("instanceid")
+
+    cli_state = db.session.query(CLIAuthState).filter_by(instance_id=instance_id).first()
+    if cli_state and cli_state.verified:
+        jwt_token = jwt.encode({"slack_user_id": cli_state.slack_user_id, "user_id": str(cli_state.author_id)}, signing_secret, algorithm="HS256")
+        return {"instanceid": instance_id, "token": jwt_token, "status": "verified", "slack_id": cli_state.slack_user_id, "user_id": str(cli_state.author_id)}, 200
+    else:
+        return {"instanceid": instance_id, "status": "pending"}, 202
+    
+    
+

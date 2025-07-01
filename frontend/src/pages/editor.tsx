@@ -18,6 +18,7 @@ import { ArrowDownWideNarrow, ArrowUpWideNarrow, Plus, Save, Trash2, X } from "l
 import { t } from "node_modules/framer-motion/dist/types.d-CQt5spQA";
 import { act, FocusEvent, ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, use, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 
 const datatypes = [ // postgresql datatypes
@@ -61,7 +62,7 @@ function TableEditor() {
     const { dbid } = useParams();
     const { selectedTable, setSelectedTable, selectedRows, setSelectedRows, changes, setChanges, data, setData, limit, offset, setTimetaken, setLimit, setOffset, contentFilter, setContentFilter, sortBy, setSortBy, addingNewColumn, setAddingNewColumn, refreshKey, setRefreshKey, failedToGetData, setFailedToGetData, newRow, setNewRow } = useEditorContext();
 
-
+    const [editColumnType, setEditColumnType] = useState<{ [key: number]: string }>({});
     const [structure, setStructure] = useState<any[]>([]);
 
 
@@ -101,7 +102,8 @@ function TableEditor() {
                 if (response && response.data) {
                     const processedData = response.data.map((item: any, index: number) => ({
                         ...item,
-                        hiddenRowIDforFrontend: (index * 1.4375) + offset 
+                        hiddenRowIDforFrontend: (index * 1.4375) + offset,
+                        type: item.type || "text",
                     }));
                     setData(processedData);
                     setTimetaken(response.time);
@@ -287,56 +289,91 @@ function TableEditor() {
                                                 },
                                             ]);
                                         }}><Trash2 className="w-4 h-4" /></Button>
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault();
+                                            const form = e.currentTarget;
+                                            const columnName = (form.elements.namedItem("column-name") as HTMLInputElement).
+                                                value.trim() || column.name;
+                                            const columnType = editColumnType[index] ?? column.type;
+                                            const defaultValue = (form.elements.namedItem("default-value") as HTMLInputElement).value.trim() || null;
+                                            const allowNull = (form.elements.namedItem("allow-nullvalues") as HTMLInputElement).checked;
+                                            
+                                            if (!columnName || columnName.trim() === "") {
+                                                toast.warning("Column name cannot be empty");
+                                                return;
+                                            }
 
-                                        <Label htmlFor="column-name" className="mb-1 mt-2">Column Name</Label>
-                                        <Input id="column-name" defaultValue={column.name} />
-                                        <Label htmlFor="column-type" className="mt-2 mb-1">Column Type</Label>
-                                        <Select>
-                                            <SelectTrigger id="column-type" className="w-full">
-                                                <SelectValue placeholder="Select a type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {datatypes.map((type) => (
-                                                    <SelectItem key={type} value={type}>
-                                                        {type}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Label htmlFor="default-value" className="mt-2 mb-1">Default Value</Label>
-                                        
-                                        
-                                        <Input id="default-value" defaultValue={column.defaultValue || ''} placeholder="Optional default value" />
+                                            setStructure(prev => {
+                                                const newStructure = [...prev];
+                                                newStructure[index] = {
+                                                    ...newStructure[index],
+                                                    name: columnName,
+                                                    type: columnType,
+                                                    default: defaultValue || null,
+                                                    nullable: allowNull,
+                                                    primaryKey: false,
+                                                };
+                                                return newStructure;
+                                            });
 
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox id="allow-nullvalues" defaultChecked={column.nullable} onChange={(e) => {
-                                                setStructure(prev => {
-                                                    const newStructure = [...prev];
-                                                    newStructure[index] = {
-                                                        ...newStructure[index],
-                                                        nullable: (e.target as HTMLInputElement).checked,
-                                                    };
-                                                    return newStructure;
-                                                });
-                                                setChanges(prev => [
-                                                    ...prev,
-                                                    {
-                                                        column: column.name,
-                                                        oldValue: column.nullable,
-                                                        newValue: (e.target as HTMLInputElement).checked,
-                                                        table: selectedTable,
-                                                        type: "edit",
-                                                        timestamp: new Date().toISOString(),
+                                            setChanges(prev => [
+                                                ...prev,
+                                                {
+                                                    column: column.name,
+                                                    oldValue: {
+                                                        name: column.name,
+                                                        type: column.type,
+                                                        default: column.default || null,
+                                                        nullable: column.nullable,
+                                                        primaryKey: column.primaryKey || false,
                                                     },
-                                                ]);
-                                            }} />
-                                            <Label htmlFor="allow-nullvalues" className="mt-2 mb-1">Allow Null Values</Label>
-                                        </div>
+                                                    newValue: {
+                                                        name: columnName,
+                                                        type: columnType,
+                                                        default: defaultValue || null,
+                                                        nullable: allowNull,
+                                                        primaryKey: false,
+                                                    },
+                                                    table: selectedTable,
+                                                    type: "edit_column",
+                                                    timestamp: new Date().toISOString(),
+                                                },
+                                            ]);
+                                        }}>
+                                            <Label htmlFor="column-name" className="mb-1 mt-2">Column Name</Label>
+                                            <Input id="column-name" name="column-name" defaultValue={column.name} />
+                                            <Label htmlFor="column-type" className="mt-2 mb-1">Column Type</Label>
+                                            <Select name="column-type" defaultValue={column.type} onValueChange={(val) => setEditColumnType(prev => ({ ...prev, [index]: val }))}>
+                                                <SelectTrigger id="column-type" className="w-full">
+                                                    <SelectValue placeholder="Select a type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {datatypes.map((type) => (
+                                                        <SelectItem key={type} value={type}>
+                                                            {type}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Label htmlFor="default-value" className="mt-2 mb-1">Default Value</Label>
+
+
+                                            <Input id="default-value" name="default-value" defaultValue={column.default || ''} placeholder="Optional default value" />
+
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox id="allow-nullvalues" defaultChecked={column.nullable} name="allow-nullvalues" />
+                                                <Label htmlFor="allow-nullvalues" className="mt-2 mb-1">Allow Null Values</Label>
+                                            </div>
+
+                                            <Button variant="default" className="mt-2 w-full" type="submit">
+                                                <Save /> Save Changes
+                                            </Button>
+                                        </form>
 
 
                                         <div className="flex items-center space-x-2">
                                             
-                                            <Checkbox id="Primary Key" defaultChecked={column.primaryKey || false} onChange={(e) => {
+                                            <Checkbox id="Primary Key" className="hidden" defaultChecked={column.primaryKey || false} onChange={(e) => {
                                                 setStructure(prev => {
                                                     const newStructure = [...prev];
                                                     newStructure[index] = {
@@ -358,13 +395,17 @@ function TableEditor() {
                                                 ]);
                                             }
                                             } />
-                                            <Label htmlFor="Primary Key" className="mt-2 mb-1">Primary Key</Label>
+                                            <Label  htmlFor="Primary Key" className="mt-2 mb-1 hidden">Primary Key</Label>
                                         </div>
                                         
                                     </PopoverContent>
                                 </Popover>
                             </th>
+
                         ))}
+                        <th className="aspect-square ">
+                            <Plus width={16} />
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -424,6 +465,7 @@ function TableEditor() {
                                 </Popover>
                             </td>
                         ))}
+
                     </tr>
                 )}
                 {data.map((row, index) => (
@@ -432,6 +474,7 @@ function TableEditor() {
                             <input checked={selectedRows.includes(row.hiddenRowIDforFrontend)} onChange={() => toggleRowSelection(row.hiddenRowIDforFrontend)} type="checkbox" className="w-3 h-3" />
                         </td>
                         {structure.map((column, colIndex) => (
+                            <>
                             <td
                                 key={column.name || colIndex}
                                 className={
@@ -460,9 +503,14 @@ function TableEditor() {
                                     <input type={column.type} className="w-full p-0.5 text-xs" onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} defaultValue={JSON.stringify(row[column.name as keyof typeof row])} />
                                 )}
                             </td>
+                            
+                            </>
+                            
                         ))}
+                        
                     </tr>
                 ))}
+        
                 </tbody>
             </table>
             

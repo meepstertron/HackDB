@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { json } from "stream/consumers";
 
 export const API_URL = import.meta.env.VITE_API_URL || 'https://condor-willing-buck.ngrok-free.app/api';
@@ -151,9 +152,10 @@ export function getUserTokens() {
 
 
 export function revokeToken(token_id: string) {
-    return fetch(API_URL + "/userdbs/tokens/" + token_id, {
+    return fetch(API_URL + "/userdbs/tokens?tokenid=" + token_id, {
         method: "DELETE",
-        credentials: "include"
+        credentials: "include",
+        body: JSON.stringify({ tokenid: token_id }),
     })
         .then(async (response) => {
             if (response.status === 200) {
@@ -176,9 +178,22 @@ export function createToken(name: string, db_id: string) {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name, db_id })
+        body: JSON.stringify({ name, dbid: db_id })
     })
-    }
+    .then(async (response) => {
+        if (response.status === 201 || response.status === 200) {
+            const jsonData = await response.json();
+            return jsonData;
+        } else {
+            throw new Error("Failed to create token");
+        }
+    })
+    .catch((error) => {
+        console.error("Error creating token:", error);
+        return null;
+    });
+}
+    
 
 export function commitChanges(changes: any[], db_id: string) {
     return fetch(API_URL + "/userdbs/" + db_id + "/commit", {
@@ -253,5 +268,31 @@ export function tableAction(db_id: string, table_id: string, action: string, dat
         .catch((error) => {
             console.error("Error performing table action:", error);
             return null;
+        });
+}
+
+
+
+export function createTable(name: string, db_id: string) {
+    return fetch(API_URL + "/userdbs/"+db_id+"/create_table", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+    })
+    .then(async (response) => {
+            if (response.status === 201) {
+                const jsonData = await response.json()
+                return jsonData
+            } else {
+                throw new Error("Failed to create table")
+            }
+        })
+        .catch((error) => {
+            console.error("Error creating table:", error)
+            toast.error("Error creating table")
+            return null
         });
 }

@@ -86,7 +86,7 @@ def commit_change(change:dict, db_id, user_id):
             """)
             params = payload
 
-        if change.get("type") == "edit":
+        elif change.get("type") == "edit":
             column = change.get("column")
             old_value = change.get("oldValue")
             new_value = change.get("newValue")
@@ -105,6 +105,38 @@ def commit_change(change:dict, db_id, user_id):
                 SET {column} = :new_value 
                 {where} AND {old_value_clause}
             """)
+        
+        elif change.get("type") == "edit_column":
+            old_col = change.get("oldValue", {}).get("name")
+            new_col = change.get("newValue", {}).get("name")
+            if not old_col or not new_col:
+                raise ValueError("edit_column must include oldValue.name and newValue.name")
+
+            query_parts = []
+
+            
+            if old_col != new_col:
+                query_parts.append(
+                    f'ALTER TABLE "{actual_table_name}" RENAME COLUMN {old_col} TO {new_col}'
+                )
+
+            new_type = change.get("newValue", {}).get("type")
+            old_type = change.get("oldValue", {}).get("type")
+            
+            if new_type and new_type != old_type:
+                query_parts.append(
+                    f'ALTER TABLE "{actual_table_name}" ALTER COLUMN {new_col} TYPE {new_type}'
+                )
+
+            if not query_parts:
+                raise ValueError("No changes detected for edit_column.")
+
+            query_string = "; ".join(query_parts)
+            query = text(query_string)
+            params = {}
+            
+            
+            
             
             
             # ass code lol
