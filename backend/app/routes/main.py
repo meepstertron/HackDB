@@ -3,7 +3,7 @@ from app import db, rq
 import os
 from uuid import uuid4
 from slack_sdk import WebClient
-from ..models import Users, CLIAuthState
+from ..models import Users, CLIAuthState, Usertables
 import jwt
 
 client_id = os.environ["SLACK_CLIENT_ID"]
@@ -172,3 +172,49 @@ def poll_cli_login():
 
     jwt_token = jwt.encode({"instance_id": str(instance_id)}, signing_secret, algorithm="HS256")
     return {"instanceid": instance_id, "token":jwt_token }, 200
+
+
+
+@main.route("/api/logout", methods=["POST"])
+def logout():
+    response = make_response(redirect("https://hackdb.hexagonical.ch/home"))
+    response.set_cookie("jwt", "", expires=0)
+    return response
+
+
+@main.route("/api/delete_account", methods=["POST"])
+def delete_account():
+    token = request.cookies.get("jwt")
+    if not token:
+        return jsonify(message="Unauthorized"), 401
+
+    try:
+        payload = jwt.decode(token, signing_secret, algorithms=["HS256"])
+        user_id = payload["user_id"]
+        user = db.session.query(Users).filter_by(id=user_id).first()
+        if user:
+            user_tables = db.session.query(Usertables).filter_by(user_id=user.id).all()
+            userdb_engine = db.get_engine(bind='userdb')
+            with userdb_engine.connect() as connection:
+                for table in user_tables:
+                    logical_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                    connection.execute(f"DROP TABLE IF EXISTS {logical_table_name} CASCADE")
+            db.session.query(Usertables).filter_by(user_id=user.id).delete()
+            db.session.query(CLIAuthState).filter_by(slack_user_id=user.slack_user_id).delete()
+            db.session.query(Users).filter_by(id=user.id).delete()
+            
+            
+            
+                    
+                    
+                    
+                    
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify(message="Account deleted"), 200
+        else:
+            return jsonify(message="User not found"), 404
+    except jwt.ExpiredSignatureError:
+        return jsonify(message="Token expired"), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message="Invalid token"), 401

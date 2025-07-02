@@ -12,6 +12,8 @@ import TableEditor from "./pages/editor";
 import TokenPage from "./pages/tokens";
 import FlowEditor from "./pages/FlowEditor";
 import AddNodeOnEdgeDrop from "./pages/test";
+import SettingsPage from "./pages/Settings";
+import QuotaPage from "./pages/quota";
 
 
 
@@ -79,6 +81,17 @@ function Routing() {
             <FlowEditorLayout>
               <FlowEditor />
             </FlowEditorLayout>
+          } />
+
+          <Route path="/settings" element={
+            <RootLayout>
+              <SettingsPage />
+            </RootLayout>
+          } />
+          <Route path="/quota" element={
+            <RootLayout>
+              <QuotaPage />
+            </RootLayout>
           } />
           <Route path="*" element={
 
