@@ -2,18 +2,27 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Coins, Database, PercentDiamond, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { getQuotaPageData } from "@/lib/api";
+import { Calendar, Clock, Coins, Database, MoveRight, PercentDiamond, TrendingDown, TrendingUp, Zap } from "lucide-react";
+
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 
-const currentUsage = 3000 
-const weeklyAllowance = 6000
-const extraCredits = 2500
-const trend = -23
-let daysUntilTopup = 4
-let usagePercentage = (currentUsage / weeklyAllowance) * 100
-let isNearLimit = usagePercentage > 80
+getQuotaPageData().then(data => {
+    if (data) {
+        // Process the data
+        console.log("Quota data:", data);
 
+    }
+});
+
+let weeklyAllowance = 0;
+let extraCredits = 0;
+let trend = 0;
+let daysUntilTopup = 0;
+let currentUsage = 0;
+let usagePercentage = 0;
+let isNearLimit = false;
 
 type UsageTrend = {
   date: string;
@@ -22,14 +31,27 @@ type UsageTrend = {
 };
 
 let usageTrend: UsageTrend[] = [
-  { date: "Jan 1", usage: 2400 },
-  { date: "Jan 8", usage: 1398 },
-  { date: "Jan 15", usage: 9800 },
-  { date: "Jan 22", usage: 3908 },
-  { date: "Jan 29", usage: 4800 },
-  { date: "Feb 5", usage: 10900 },
-  { date: "Feb 12", usage: 4300 },
+
 ];
+
+getQuotaPageData().then(data => {
+    if (data) {
+        currentUsage = data.used_this_week || 0;
+        weeklyAllowance = data.credits || 100;
+        usageTrend = data.weekly_usage
+        for (let i = 0; i < usageTrend.length; i++) {
+            usageTrend[i].limit = weeklyAllowance; 
+        }
+        trend = data.change_percent
+        daysUntilTopup = 7 - new Date().getDay();
+        extraCredits = data.extra_credits || 0;
+        usagePercentage = (currentUsage / weeklyAllowance) * 100;
+        isNearLimit = usagePercentage > 80;
+    }
+});
+
+
+
 
 for (let i = 0; i < usageTrend.length; i++) {
     usageTrend[i].limit = weeklyAllowance; 
@@ -71,7 +93,7 @@ function QuotaPage() {
                         }}
                         className="h-[300px]"
                         >
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer>
                             <LineChart data={usageTrend}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="date" />
@@ -144,7 +166,7 @@ function QuotaPage() {
                         {trend > 0 ? (
                             <TrendingUp className="h-5 w-5 text-orange-500" />
                         ) : (
-                            <TrendingDown className="h-5 w-5 text-green-500" />
+                            trend === 0 ? (<MoveRight className="h-5 w-5 text-muted-foreground" />) : (<TrendingDown className="h-5 w-5 text-green-500" />)
                         )}
                         <span className="text-2xl font-bold">{trend}%</span>
                         </div>
@@ -164,15 +186,16 @@ function QuotaPage() {
                         We are a open source project so here are some ways you can get more credits:
 
 
-                        <ul className="list-disc pl-5 space-y-1">
-                            <li>Contribute to the codebase on GitHub</li>
-                            <li>Report bugs and issues</li>
-                            <li>Share HackDB with your friends and community</li>
-                            <li>Support @hexagonicalhq or @meepstertron on GitHub</li>
-                            <li>Use HackDB in open source projects</li>
-                            <li>Beg @meepstertron on the hackclub slack /hj ?</li>
-                        </ul>
+
                     </p>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground " style={{ listStyleType: "-" }}>
+                        <li>Contribute to the codebase on GitHub</li>
+                        <li>Report bugs and issues</li>
+                        <li>Share HackDB with your friends and community</li>
+                        <li>Support @hexagonicalhq or @meepstertron on GitHub</li>
+                        <li>Use HackDB in open source projects</li>
+                        <li>Beg @meepstertron on the hackclub slack /hj ?</li>
+                    </ul>
                 </CardContent>
             </Card>
         </div>

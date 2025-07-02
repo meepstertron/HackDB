@@ -17,7 +17,7 @@ function DatabaseCreationPage() {
         createDatabase(name)
             .then((data) => {
                 console.log("Database created successfully:", data);
-                navigate(`/databases/${data.id}`);
+                navigate(`/databases/${data.database_id}`);
             })
             .catch((error) => {
                 console.error("Error creating database:", error);

@@ -229,8 +229,7 @@ class Credits:
         current_credits = sum(entry.credits_spent for entry in current_week)
         previous_credits = sum(entry.credits_spent for entry in previous_weeks)
 
-        if previous_credits == 0:
-            return 0
+
 
         return (current_credits - previous_credits) / previous_credits * 100
     
@@ -281,3 +280,54 @@ class Credits:
                 "created_at": h.created_at.isoformat()
             } for h in history
         ]
+        
+    @staticmethod
+    def get_weekly_usage(user_id, weeks=1):
+        """
+        Get the usage per week for a set amount of weeks, including all Mondays and today's usage.
+        """
+        if weeks < 1:
+            raise ValueError("Weeks must be at least 1")
+        
+        now = datetime.utcnow()
+        start_date = now - timedelta(weeks=weeks)
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+        mondays = []
+        current_date = start_date
+        while current_date <= now:
+            if current_date.weekday() == 0:  
+                mondays.append(current_date)
+            current_date += timedelta(days=1)
+
+
+        usage = db.session.query(
+            db.func.date_trunc('week', CreditsHistory.created_at).label('week'),
+            db.func.sum(CreditsHistory.credits_spent).label('total_spent')
+        ).filter(
+            CreditsHistory.user_id == user_id,
+            CreditsHistory.created_at >= start_date
+        ).group_by('week').order_by('week').all()
+
+  
+        usage_dict = {week.date(): total_spent for week, total_spent in usage}
+        result = []
+        for monday in mondays:
+            monday_date = monday.date()
+            result.append({
+                "date": monday_date.isoformat(),
+                "usage": usage_dict.get(monday_date, 0) 
+            })
+
+        start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_usage = db.session.query(
+            db.func.sum(CreditsHistory.credits_spent).label('total_spent')
+        ).filter(
+            CreditsHistory.user_id == user_id,
+            CreditsHistory.created_at >= start_of_today
+        ).scalar() or 0
+
+        result[-1]['date'] = "This week"
+
+        return result

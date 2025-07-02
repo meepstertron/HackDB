@@ -296,3 +296,24 @@ export function createTable(name: string, db_id: string) {
             return null
         });
 }
+
+
+
+export function getQuotaPageData() {
+    return fetch(API_URL + "/userdbs/credits", {
+        method: "GET",
+        credentials: "include"
+    })
+    .then(async (response) => {
+        if (response.status === 200) {
+            const jsonData = await response.json();
+            return jsonData;
+        } else {
+            throw new Error("Failed to fetch quota data");
+        }
+    })
+    .catch((error) => {
+        console.error("Error fetching quota data:", error);
+        return null;
+    });
+}

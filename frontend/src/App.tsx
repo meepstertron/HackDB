@@ -9,7 +9,7 @@ function App() {
   const greetings = ["Hi there, ", "Hello World! ", "Welcome, ", "Greetings, ", "Salutations, ", "Nice to see you, "];
   return (
     <div>
-      <h1 className="text-2xl ">{greetings[Math.floor(Math.random() * greetings.length)]}{user?.name ? <span>{user.username}</span> : null} 👋</h1>
+      <h1 className="text-2xl ">{greetings[Math.floor(Math.random() * greetings.length)]}{user?.username ? <span>{user.username}</span> : null} 👋</h1>
       <div className='flex flex-row'>
           <Card>
             <CardHeader></CardHeader>

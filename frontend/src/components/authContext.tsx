@@ -3,11 +3,12 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
 
 interface User {
-    username: ReactNode;
-    // Define user properties as needed, e.g.:
+    username: string; // Change ReactNode to string
     id?: string;
     name?: string;
-    // Add more fields as needed
+    email?: string;
+    slack_id?: string;
+    valid?: boolean;
 }
 
 interface AuthContextType {
@@ -37,7 +38,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 });
                 if (response.ok) {
                     const data = await response.json();
+                    
                     setUser(data);
+                    
                 } else {
                     setUser(null);
                 }

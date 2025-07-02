@@ -8,6 +8,7 @@ from app import db, rq
 import logging
 
 import os
+from .. import helpers
 from ..models import Users, Databases, Usertables, Tokens
 import re 
 from sqlalchemy import text 
@@ -135,7 +136,7 @@ def create_user_db():
     
     dbs_query = db.session.query(Databases).filter_by(owner=user.id)
     
-    if dbs_query.count() >= 5:
+    if dbs_query.count() >= 40:
         return jsonify(message='User has reached the maximum number of databases'), 403
     
     data = request.get_json()
@@ -804,3 +805,37 @@ def poll_information():
         failed += any(result['result'] == 'failed' for result in results)
         pending = any(result['status'] == 'queued' for result in results)
         return jsonify(results=results, failed=failed, pending=pending, total=len(results)), 200
+
+
+
+@udb.route('/userdbs/credits', methods=['GET'])
+def cli_credits():
+
+    token = request.cookies.get('jwt')
+    if not token:
+        return jsonify(message='Unauthorized'), 401 
+    try:
+        payload = jwt.decode(token, signing_secret ,options={"verify_signature": True}, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify(message='Token expired'), 401
+    except jwt.InvalidTokenError:
+        return jsonify(message='Invalid token'), 401
+    except Exception as e:
+        logging.error(f"Error decoding JWT: {e}")
+        return jsonify(message='Invalid token: Unknown error'), 401
+    user = db.session.query(Users).filter_by(id=payload['user_id']).first()
+    if not user:
+        return jsonify(message='User not found'), 404
+    
+    return jsonify({
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "credits": user.weekly_allowance,
+        "unlimited": user.unlimited,
+        "extra_credits": user.purchased_credits,
+        "used_this_week": helpers.Credits.get_used_credits_this_week(user.id),
+        "used_last_week": helpers.Credits.get_used_credits_last_week(user.id),
+        "change_percent": helpers.Credits.get_change_percent(user.id),
+        "weekly_usage": helpers.Credits.get_weekly_usage(user.id, 7),
+    }), 200
