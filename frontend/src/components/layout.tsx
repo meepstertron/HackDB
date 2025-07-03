@@ -43,6 +43,7 @@ function RootLayout({ children }: React.PropsWithChildren) {
                 <main className="flex-1 p-6 overflow-auto">
                     {children}
                 </main>
+
             </div>
         </div>
     );
@@ -110,8 +111,8 @@ function EditorLayout({ children}: React.PropsWithChildren) {
                             <div className="flex items-center gap-4">
                               <SidebarTrigger className="outline-1 outline-gray-300" />
                               <div className="flex items-center gap-2">
-                                <SquareIconButton icon={<Undo2 />} label="Undo" onClick={() => {}} className="h-9" />
-                                <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9" />
+                                <SquareIconButton icon={<Undo2 />} label="Undo" onClick={() => {}} className="h-9 hidden" />
+                                <SquareIconButton icon={<Redo2 />} label="Redo" onClick={() => {}} className="h-9 hidden" />
                               </div>
 
                               {addingNewColumn ? <><Button variant="default" onClick={() => { handleAddRow() }}><Check /> Save Changes</Button> <Button variant="ghost" size="sm" onClick={() => { setAddingNewColumn(false); }}><span>Cancel</span></Button></> : <Button variant="outline" onClick={() => { setAddingNewColumn(true); }}><Plus /> Add Row</Button>}

@@ -107,6 +107,7 @@ def commit_change(change:dict, db_id, user_id):
             """)
         
         elif change.get("type") == "edit_column":
+            params = {}
             old_col = change.get("oldValue", {}).get("name")
             new_col = change.get("newValue", {}).get("name")
             if not old_col or not new_col:
@@ -125,21 +126,40 @@ def commit_change(change:dict, db_id, user_id):
             
             if new_type and new_type != old_type:
                 query_parts.append(
-                    f'ALTER TABLE "{actual_table_name}" ALTER COLUMN {new_col} TYPE {new_type}'
+                    f'ALTER TABLE "{actual_table_name}" ALTER COLUMN {new_col} TYPE {new_type} USING {new_col}::{new_type}'
                 )
+                
+            new_default = change.get("newValue", {}).get("default")
+            old_default = change.get("oldValue", {}).get("default")
+            
+            if new_default is not None and new_default != old_default:
+                if new_default is None:
+                    query_parts.append(
+                        f'ALTER TABLE "{actual_table_name}" ALTER COLUMN {new_col} DROP DEFAULT'
+                    )
+                else:
+                    query_parts.append(
+                        f'ALTER TABLE "{actual_table_name}" ALTER COLUMN {new_col} SET DEFAULT :new_default'
+                    )
+                    params = {"new_default": new_default}
 
             if not query_parts:
                 raise ValueError("No changes detected for edit_column.")
 
             query_string = "; ".join(query_parts)
             query = text(query_string)
+            
+            
+            
+        elif change.get("type") == "add_column":
+            column = change.get("column")
+            
+            query = text(f"""
+                ALTER TABLE "{actual_table_name}" 
+                ADD COLUMN {column} TEXT
+            """)
             params = {}
-            
-            
-            
-            
-            
-            # ass code lol
+
         elif change.get("type") == "delete":
             # remove hiddenRowIDforFrontend from where clause
             # if where:

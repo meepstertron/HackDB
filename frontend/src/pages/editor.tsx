@@ -64,6 +64,7 @@ function TableEditor() {
 
     const [editColumnType, setEditColumnType] = useState<{ [key: number]: string }>({});
     const [structure, setStructure] = useState<any[]>([]);
+    const [lastUndoneChange, setLastUndoneChange] = useState<any | null>(null);
 
 
 
@@ -103,7 +104,7 @@ function TableEditor() {
                     const processedData = response.data.map((item: any, index: number) => ({
                         ...item,
                         hiddenRowIDforFrontend: (index * 1.4375) + offset,
-                        type: item.type || "text",
+                        
                     }));
                     setData(processedData);
                     setTimetaken(response.time);
@@ -135,6 +136,8 @@ function TableEditor() {
             setSelectedRows([]);
         }
     };
+
+
 
 
     const handleInput = (
@@ -231,6 +234,7 @@ function TableEditor() {
         if (isNaN(date.getTime())) return null; // Invalid date
         return date.toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
     }
+
 
 
     if (!selectedTable) {
@@ -403,8 +407,25 @@ function TableEditor() {
                             </th>
 
                         ))}
-                        <th className="aspect-square ">
-                            <Plus width={16} />
+                        <th className="aspect-square cursor-pointer " onClick={() => {
+                            setStructure(prev => [...prev, 
+                                {
+                                    name: `new_column_${prev.length + 1}`,
+                                    type: "text",
+                                    default: null,
+                                    nullable: true,
+                                    primaryKey: false
+                                }
+                            ]);
+                            setChanges(prev => [ ...prev, {
+                                column: `new_column_${structure.length + 1}`,
+                                oldValue: null,
+                                newValue: null,
+                                table: selectedTable,
+                                type: "add_column",
+                                timestamp: new Date().toISOString(),
+                            }]);
+                        }}><Plus width={16} />
                         </th>
                     </tr>
                 </thead>
@@ -500,7 +521,7 @@ function TableEditor() {
                                 ) : column.type === "boolean" ? (
                                     <input type="checkbox" className="w-full p-0.5 text-xs" onChange={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} checked={row[column.name as keyof typeof row]} />
                                 ) : (
-                                    <input type={column.type} className="w-full p-0.5 text-xs" onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} defaultValue={JSON.stringify(row[column.name as keyof typeof row])} />
+                                    <input type={column.type} className="w-full p-0.5 text-xs" onBlur={(e) => handleInput(e, row.hiddenRowIDforFrontend, column.name, row[column.name])} defaultValue={row[column.name as keyof typeof row]} />
                                 )}
                             </td>
                             

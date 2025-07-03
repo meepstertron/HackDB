@@ -14,11 +14,20 @@ import FlowEditor from "./pages/FlowEditor";
 import AddNodeOnEdgeDrop from "./pages/test";
 import SettingsPage from "./pages/Settings";
 import QuotaPage from "./pages/quota";
+import { toast } from "sonner";
+
 
 
 
 
 function Routing() {
+ 
+  // check if client is mobile or desktop
+  // if mobile, warn user that the app is not optimized for mobile devices
+
+  if (window.innerWidth < 768) {
+    toast.warning("This app is not optimized for mobile devices. Please use a desktop browser.");
+  }
 
     const { user, loading} = useContext(AuthContext);
     if (loading) {

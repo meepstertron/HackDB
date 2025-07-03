@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HackDB Chat Room</title>
+</head>
+<body>
+        <div class="root" >
+            <h1>Welcome to the chatroom!</h1>
+            <p>This is a simple tech demo supposed to showcase usage of HackDB!</p>
+            <p>To get started enter any name (pls nothing inapropriate) below:</p>
+            <form>
+                <input type="text" name="name" placeholder="Enter your name" />
+                <button type="submit">Join Chat</button>
+            </form>
+            <div></div>
+        </div>
+</body>
+<script>
+    
+
+    document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const name = event.target.name.value;
+        if (name) {
+            window.location.href = `/chat?name=${encodeURIComponent(name)}`;
+        } else {
+            alert('Please enter a name to join the chat.');
+        }
+    });
+
+
+
+</script>
+</html>

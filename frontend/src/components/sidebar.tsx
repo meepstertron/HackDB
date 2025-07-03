@@ -32,7 +32,9 @@ function Sidebar() {
         <aside className="w-16 h-full bg-white border-r border-gray-300 flex flex-col items-center p-4">
             
             <div className="mb-8">
-                <img src="/logo192.png" alt="Logo" className="h-8 w-8" />
+                <a href="/home" className="">
+                    <img src="https://emoji.slack-edge.com/T0266FRGM/databaseparrot/efb8e65ba668ca10.gif" alt="Logo" className="h-8 w-8" />
+                </a>
             </div>
             <ul className="flex flex-col items-center w-full text-gray-800">
                 {elements.map((element) => (
@@ -176,7 +178,32 @@ function EditorSidebar() {
                                     <ContextMenuContent>
                                         <div className="flex items-center p-2"><Table2 size="16" /><span className="text-sm font-sans px-2">{table.name}</span></div>
                                         <hr className="mx-2 my-1"/>
-                                        <ContextMenuItem><Plus />New</ContextMenuItem>
+                                        <ContextMenuSub>
+                                          <ContextMenuSubTrigger className="text-sm flex flex-row items-center gap-2 text-accent-foreground">
+                                            <Plus className="text-muted-foreground" /> New
+                                          </ContextMenuSubTrigger>
+                                          <ContextMenuSubContent className="p-0 w-64">
+                                            <form
+                                              onSubmit={(e) => {
+                                                e.preventDefault();
+                                                // handle rename
+                                                const formData = new FormData(e.currentTarget);
+                                                const newName = formData.get("tableName") as string;
+                                                if (newName.trim() !== "") {
+                                                  tableAction(dbid || "", table.id, 'action.rename', { newname: newName, tableid: table.id });
+                                                  setRefreshKey(Date.now());
+                                                }
+                                              }}
+                                            >
+                                              <div className="flex flex-row  ">
+                                                <Input placeholder="Table Name" name="tableName" type="text" />
+                                                <Button variant="outline" className="ml-2" type="submit" size={"icon"}>
+                                                  <Plus />
+                                                </Button>
+                                              </div>
+                                            </form>
+                                          </ContextMenuSubContent>
+                                        </ContextMenuSub>
                                         <ContextMenuSub>
                                           <ContextMenuSubTrigger className="text-sm flex flex-row items-center gap-2 text-accent-foreground">
                                             <Edit className="text-muted-foreground" /> Rename

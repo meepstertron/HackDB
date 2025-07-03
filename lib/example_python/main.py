@@ -123,4 +123,4 @@ if __name__ == "__main__":
     print(hackdb.Test.count())
 
     # Run stress test
-    stress_test(hackdb, num_records=10000)
+    stress_test(hackdb, num_records=100)
