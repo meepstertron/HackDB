@@ -79,6 +79,9 @@ function QuotaPage() {
                 fetchQuotaData();
             }
         }, refetchInterval);
+        
+
+        return () => clearInterval(interval);
 
     }, []);
 

@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { json } from "stream/consumers";
 
-export const API_URL = import.meta.env.VITE_API_URL || 'https://condor-willing-buck.ngrok-free.app/api';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 
 interface Database {

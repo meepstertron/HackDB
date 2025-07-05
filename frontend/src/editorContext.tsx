@@ -67,7 +67,7 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
     const [failedToGetData, setFailedToGetData] = useState(false);
     const [newRow, setNewRow] = useState<any>({});
     const [databases, setDatabases] = useState(                    [
-                        { id: "1", name: "Loading", tables: 0, size: "Loading" }
+                        { id: "1", name: "None Selected", tables: 0, size: "NaN" }
                     ]);
     const hasDismissedLimitAlert = useRef(false);
 

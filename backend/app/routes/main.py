@@ -218,3 +218,35 @@ def delete_account():
         return jsonify(message="Token expired"), 401
     except jwt.InvalidTokenError:
         return jsonify(message="Invalid token"), 401
+
+
+@main.route("/api/metrics", methods=["GET"])
+def metrics():
+    """
+    Expose application metrics in Prometheus format.
+    """
+    # Example metrics
+    total_requests = 100  # Replace with actual logic to fetch total requests
+    active_users = 10  # Replace with actual logic to fetch active users
+    db_connections = 5  # Replace with actual logic to fetch DB connections
+
+    metrics_data = f"""
+# HELP hackdb_version Version of HackDB
+# TYPE hackdb_version gauge
+hackdb_version 1.0    
+
+# HELP hackdb_requests_total Total number of requests
+# TYPE hackdb_requests_total counter
+hackdb_requests_total {total_requests}
+
+# HELP hackdb_active_users Number of active users
+# TYPE hackdb_active_users gauge
+hackdb_active_users {active_users}
+
+# HELP hackdb_db_connections Number of active database connections
+# TYPE hackdb_db_connections gauge
+hackdb_db_connections {db_connections}
+
+"""
+
+    return metrics_data, 200, {"Content-Type": "text/plain"}
