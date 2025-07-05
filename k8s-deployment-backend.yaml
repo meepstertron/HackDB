@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: hackdb-backend:latest
+        image: ghcr.io/meepstertron/hackdb-backend:latest
         env:
         - name: POSTGRES_USER
           value: "user"
