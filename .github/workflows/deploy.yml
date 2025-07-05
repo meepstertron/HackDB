@@ -57,6 +57,7 @@ jobs:
         kubectl apply -f k8s-deployment-backend.yaml
         kubectl apply -f k8s-deployment-frontend.yaml
         kubectl apply -f k8s-ingress.yaml
+        kubectl apply -f k8s-pvc.yaml
 
 
     - name: Roll out deployments
