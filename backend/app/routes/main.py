@@ -19,14 +19,14 @@ main = Blueprint('main', __name__)
 def index():
     return jsonify(message='Hello from HackDB!')
 
-@main.route('/enqueue-task')
+@main.route('/api/enqueue-task')
 def enqueue_task():
     from app.tasks import example_task
     job = rq.enqueue(example_task, 2, 3)
     return jsonify(job_id=job.get_id(), status=job.get_status())
 
 
-@main.route("/taskstatus/<job_id>")
+@main.route("/api/taskstatus/<job_id>")
 def task_status(job_id):
     job = rq.fetch_job(job_id)
     if job:
@@ -34,12 +34,12 @@ def task_status(job_id):
     else:
         return jsonify(message="Job not found"), 404
 
-@main.route("/begin_auth", methods=["GET"])
+@main.route("/api/begin_auth", methods=["GET"])
 def pre_install():
   return f'<a href="https://slack.com/oauth/v2/authorize?user_scope={ oauth_scope }&client_id={ client_id }&state={state}"><img alt=""Add to Slack"" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>'
 
 
-@main.route("/finish_auth", methods=["GET", "POST"])
+@main.route("/api/finish_auth", methods=["GET", "POST"])
 def post_install():
     auth_code = request.args["code"]
     auth_code = request.args["code"]

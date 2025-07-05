@@ -15,15 +15,9 @@ spec:
       containers:
       - name: backend
         image: ghcr.io/meepstertron/hackdb-backend:latest
-        env:
-        - name: POSTGRES_USER
-          value: "user"
-        - name: POSTGRES_PASSWORD
-          value: "password"
-        - name: POSTGRES_DB
-          value: "hackdb"
-        - name: DB_HOST
-          value: "postgres"
+        envFrom:
+        - secretRef:
+            name: backend-secret
         ports:
         - containerPort: 5000
 ---
