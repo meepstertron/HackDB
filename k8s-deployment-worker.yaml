@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hackdb-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hackdb-worker
+  template:
+    metadata:
+      labels:
+        app: hackdb-worker
+    spec:
+      containers:
+      - name: worker
+        image: ghcr.io/meepstertron/hackdb-backend:latest
+        env:
+        - name: REDIS_URL
+          value: redis://hackdb-redis:6379/0
+        command: ["python"]
+        args: ["-u", "app/worker.py"]

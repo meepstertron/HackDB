@@ -19,7 +19,7 @@ def create_app(config_class=Config):
 
     # Set up Redis Queue
     global rq
-    redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+    redis_url = os.getenv('REDIS_URL', 'redis://hackdb-redis:6379/0')
     redis_conn = redis.from_url(redis_url)
     rq = Queue(connection=redis_conn)
 
