@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: hackdb-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
@@ -17,8 +17,8 @@ spec:
             name: frontend
             port:
               number: 80
-      - path: /api
-        pathType: Prefix
+      - path: /api(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: backend
