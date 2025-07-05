@@ -68,4 +68,3 @@ jobs:
         kubectl rollout restart deployment/hackdb-backend
         kubectl rollout restart deployment/hackdb-worker
         kubectl rollout restart deployment/hackdb-redis
-        kubectl rollout restart deployment/hackdb-db

@@ -15,8 +15,9 @@ spec:
       containers:
       - name: worker
         image: ghcr.io/meepstertron/hackdb-backend:latest
+        workingDir: /app
         env:
         - name: REDIS_URL
           value: redis://hackdb-redis:6379/0
         command: ["python"]
-        args: ["-u", "app/worker.py"]
+        args: ["-m", "app.worker"]
