@@ -14,13 +14,13 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: frontend
+            name: hackdb-frontend
             port:
               number: 80
       - path: /api
         pathType: Prefix
         backend:
           service:
-            name: backend
+            name: hackdb-backend
             port:
               number: 5000

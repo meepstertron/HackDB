@@ -57,3 +57,10 @@ jobs:
         kubectl apply -f k8s-deployment-backend.yaml
         kubectl apply -f k8s-deployment-frontend.yaml
         kubectl apply -f k8s-ingress.yaml
+
+
+    - name: Roll out deployments
+      run: |
+        kubectl rollout restart deployment/hackdb-frontend
+        kubectl rollout restart deployment/hackdb-backend
+        kubectl rollout restart deployment/hackdb-db

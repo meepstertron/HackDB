@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: hackdb-backend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: backend
+      app: hackdb-backend
   template:
     metadata:
       labels:
-        app: backend
+        app: hackdb-backend
     spec:
       containers:
-      - name: backend
+      - name: hackdb-backend
         image: ghcr.io/meepstertron/hackdb-backend:latest
         envFrom:
         - secretRef:
@@ -24,10 +24,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend
+  name: hackdb-backend
 spec:
   ports:
   - port: 5000
     targetPort: 5000
   selector:
-    app: backend
+    app: hackdb-backend

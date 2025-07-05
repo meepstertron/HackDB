@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: hackdb-frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: frontend
+      app: hackdb-frontend
   template:
     metadata:
       labels:
-        app: frontend
+        app: hackdb-frontend
     spec:
       containers:
-      - name: frontend
+      - name: hackdb-frontend
         image: ghcr.io/meepstertron/hackdb-frontend:latest
         ports:
         - containerPort: 80
@@ -21,10 +21,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
+  name: hackdb-frontend
 spec:
   ports:
   - port: 80
     targetPort: 80
   selector:
-    app: frontend
+    app: hackdb-frontend
