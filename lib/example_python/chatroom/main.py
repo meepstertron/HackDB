@@ -1,22 +1,34 @@
+import time
 from hackdb import HackDB
 from flask import Flask, request, jsonify, render_template
 
-db = HackDB(token="hkdb_tkn_065d8c41-4f5d-4678-a48c-ca26fb55808c", base_url="https://condor-willing-buck.ngrok-free.app/api/sdk/v1")
+db = HackDB(token="hkdb_tkn_7dd9d15b-924e-42c7-899b-d274730e5341", base_url="https://hackdb.hexagonical.ch/api/sdk/v1")
 
 app = Flask(__name__)
+
+global last_fetch, cache
+
+last_fetch = time.time() - 31
+cache = []
 
 @app.route('/messages', methods=['GET'])
 def get_messages():
     """
     Get all messages from the chatroom.
     """
-    try:
-        messages = db.messages.find_many(limit=40)
-        return jsonify(messages), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-    
+    global last_fetch, cache  
+    if last_fetch + 30 < time.time():
+        try:
+            messages = db.messages.find_many(limit=40)
+            print(f"Fetched {len(messages)} messages from the database.")
+            last_fetch = time.time()
+            cache = messages
+            return jsonify(messages), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify(cache), 200
+
 
 @app.route('/send', methods=['POST'])
 def send_message():
@@ -37,6 +49,8 @@ def send_message():
             "author": data.get('name', 'Anonymous'),
         }
         db.messages.create(message)
+        
+        cache.append(message)
         return jsonify({"status": "Message sent"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500 

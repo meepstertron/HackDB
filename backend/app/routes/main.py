@@ -3,7 +3,7 @@ from app import db, rq
 import os
 from uuid import uuid4
 from slack_sdk import WebClient
-from ..models import Users, CLIAuthState, Usertables
+from ..models import Users, CLIAuthState, Usertables, CreditsHistory, Databases
 import jwt
 
 client_id = os.environ["SLACK_CLIENT_ID"]
@@ -225,15 +225,29 @@ def metrics():
     """
     Expose application metrics in Prometheus format.
     """
-    # Example metrics
-    total_requests = 100  # Replace with actual logic to fetch total requests
-    active_users = 10  # Replace with actual logic to fetch active users
-    db_connections = 5  # Replace with actual logic to fetch DB connections
+    # get the size of the 
+    
+    active_users = db.session.query(Users).count() 
+    total_requests = db.session.query(CreditsHistory).count() 
+    db_connections = db.get_engine(bind='userdb').pool.checkedin() + db.get_engine(bind='userdb').pool.checkedout()
 
     metrics_data = f"""
 # HELP hackdb_version Version of HackDB
 # TYPE hackdb_version gauge
 hackdb_version 1.0    
+
+# HELP hackdb_databases_total Total number of databases
+# TYPE hackdb_databases_total gauge
+hackdb_databases_total {db.session.query(Databases).count()}
+
+# HELP hackdb_tables_total Total number of user tables
+# TYPE hackdb_tables_total gauge
+hackdb_tables_total {db.session.query(Usertables).count()}
+
+
+# HELP hackdb_database_size_bytes Size of the user database in bytes WIP
+# TYPE hackdb_database_size_bytes gauge
+hackdb_database_size_bytes {0}
 
 # HELP hackdb_requests_total Total number of requests
 # TYPE hackdb_requests_total counter

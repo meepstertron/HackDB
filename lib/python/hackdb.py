@@ -278,5 +278,21 @@ class HackDB:
         else:
             logger.error(f"Failed to retrieve tables: {response.status_code} - {response.text}")
             return []
+        
+    def get_credits(self):
+        """
+        Retrieve the current credits for the HackDB instance.
+        
+        Returns:
+        int: The number of credits available.
+        """
+        if not self.connected:
+            raise ValueError("HackDB instance is not connected. Cannot retrieve credits.")
+        response = requests.get(f"{self.base_url}/credits", headers={"Authorization": f"Bearer {self.token}"})
+        if response.status_code == 200:
+            return response.json().get("credits", 0)
+        else:
+            logger.error(f"Failed to retrieve credits: {response.status_code} - {response.text}")
+            return 0
 
 
