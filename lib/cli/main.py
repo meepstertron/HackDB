@@ -281,7 +281,30 @@ def configure(args):
         json.dump(config, f, indent=4)
         
 def databases(args):
-    return
+    if config.get("method") is None:
+        print(f"{color.RED}You are not logged in!{color.END}")
+        print("Please login using 'hackdb login'")
+        return
+
+    response = requests.get(config['api_url']+"/cli/databases?method="+config['method'], headers={
+        "Authorization": f"Bearer {config['token']}"
+    })
+    if response.status_code == 500:
+        print("Server error. Please try again later.")
+        return
+    if response.status_code != 200:
+        try:
+            error_msg = response.json().get('error', 'Unknown error')
+        except Exception:
+            error_msg = response.text.strip() or 'Unknown error'
+        print(f"{color.RED}Error fetching databases: {error_msg}{color.END}")
+        return
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        print(f"{color.RED}Error decoding JSON response{color.END}")
+        return
+    print_header()
 
 def main():
     parser = argparse.ArgumentParser(prog='hackdb', description='HackDB CLI')
