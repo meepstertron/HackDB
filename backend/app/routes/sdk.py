@@ -511,11 +511,11 @@ def cli_drop_database():
     
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
-        db_name = request.json.get('db_name', None)
-        if not db_name:
-            return jsonify({"error": "No database name provided"}), 400
-        
-        db_to_drop = db.session.query(Databases).filter(Databases.name == db_name, Databases.owner == user.id).first()
+        db_id = request.json.get('database_id', None)
+        if not db_id:
+            return jsonify({"error": "No database id provided"}), 400
+
+        db_to_drop = db.session.query(Databases).filter(Databases.id == db_id, Databases.owner == user.id).first()
         if not db_to_drop:
             return jsonify({"error": "Database not found"}), 404
         
