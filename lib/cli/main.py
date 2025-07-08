@@ -305,6 +305,56 @@ def databases(args):
         print(f"{color.RED}Error decoding JSON response{color.END}")
         return
     print_header()
+    print(f"{color.YELLOW}Databases:{color.END}")
+    if not data.get("databases"):
+        print(f"{color.YELLOW}No databases found.{color.END}")
+        return
+    try:
+        for db in data["databases"]:
+            print(f"- {db['name']} ({db['id']})")
+    except KeyError as e:
+        print(f"{color.RED}Error parsing database response: {e}{color.END}")
+        return
+    
+def drop(args):
+    if config.get("method") is None:
+        print(f"{color.RED}You are not logged in!{color.END}")
+        print("Please login using 'hackdb login'")
+        return
+    if not args.database:
+        print(f"{color.RED}Please provide a database ID to drop using -d or --database{color.END}")
+        return
+
+    if not len(args.database) == 36: 
+        print(f"{color.RED}Invalid database ID.{color.END}")
+        return
+
+    print(f"{color.YELLOW}Dropping database with ID: {args.database}{color.END}")
+    print("This action is irreversible. Are you sure you want to proceed? (y/n)")
+    confirmation = input().strip().lower()
+    if confirmation != 'y':
+        print("Operation cancelled.")
+        return
+    
+    response = requests.post(config['api_url']+"/cli/drop", headers={
+        "Authorization": f"Bearer {config['token']}"
+    }, json={
+        "database_id": args.database
+    })
+
+    if response.status_code == 500:
+        print("Server error. Please try again later.")
+        return
+    if response.status_code != 200:
+        print(f"{color.RED}Error dropping database: {response.json().get('error', 'Unknown error')}{color.END}")
+        return
+    print(f"{color.GREEN}Database dropped successfully.{color.END}")
+    if response.json().get("logout"):
+        print("You have been logged out due to this action. The token you were using has been invalidated.")
+        print("Please login again using 'hackdb login'.")
+        config.clear()
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=4)
 
 def main():
     parser = argparse.ArgumentParser(prog='hackdb', description='HackDB CLI')
@@ -330,6 +380,11 @@ def main():
     # hackdb databases
     parser_databases = subparsers.add_parser('databases', help='Show databases')
     parser_databases.set_defaults(func=databases)
+    
+    # hackdb drop
+    parser_drop = subparsers.add_parser('drop', help='Drop a database')
+    parser_drop.add_argument('-d', '--database', required=True, help='Database ID to drop')
+    parser_drop.set_defaults(func=drop)
 
     args = parser.parse_args()
     args.func(args)

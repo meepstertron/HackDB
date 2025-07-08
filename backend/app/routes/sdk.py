@@ -448,7 +448,101 @@ def cli_databases():
         return jsonify({"error": "User not found"}), 404
 
     databases = db.session.query(Databases).filter(Databases.owner == user.id).all()
-    return jsonify({"databases": [db.name for db in databases]}), 200
+    payload = []
+    
+    for db in databases:
+        db_info = {
+            "id": str(db.id),
+            "name": db.name
+        }
+        payload.append(db_info)
+
+    return jsonify({"databases": payload}), 200
+
+
+@sdk.route('/cli/databases/drop', methods=['POST'])
+def cli_drop_database():
+    token = request.headers.get('Authorization')
+    method = request.args.get('method', None)
+    
+    if not method or method not in ['sdk_token', 'slack_oauth', 'hexagonical_auth']:
+        return jsonify({"error": "Invalid or missing method"}), 400
+    
+    if method == 'sdk_token':
+        if not token or not re.match(r"^Bearer hkdb_tkn_[a-f0-9\-]{36}$", token):
+            return jsonify({"error": "Invalid or missing token"}), 401
+        token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
+        if not token_row:
+            return jsonify({"error": "Token not found"}), 404
+    
+    if method == 'slack_oauth':
+        try:
+            if not token or not re.match(r"^Bearer [a-zA-Z0-9\-_.]+$", token):
+                return jsonify({"error": "Invalid or missing token"}), 401
+            try:
+                payload = jwt.decode(token.split(" ")[1], signing_secret, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return jsonify({"error": "Token has expired"}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({"error": "Invalid token"}), 401
+            user_id = payload.get('user_id')
+            if not user_id:
+                return jsonify({"error": "Invalid token"}), 401
+            user = db.session.query(Users).filter(Users.id == user_id).first()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+    if method == 'hexagonical_auth':
+        return jsonify({"error": "Hexagonical Auth not implemented yet"}), 501
+
+    if method == 'sdk_token':
+        user_id_to_query = token_row.userid
+    else:
+        user_id_to_query = user_id
+
+    user = db.session.query(Users).filter(Users.id == user_id_to_query).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    userdb_engine = db.get_engine(bind='userdb')
+    with userdb_engine.connect() as connection:
+        db_name = request.json.get('db_name', None)
+        if not db_name:
+            return jsonify({"error": "No database name provided"}), 400
+        
+        db_to_drop = db.session.query(Databases).filter(Databases.name == db_name, Databases.owner == user.id).first()
+        if not db_to_drop:
+            return jsonify({"error": "Database not found"}), 404
+        
+        tables = db.session.query(Usertables).filter(Usertables.db == db_to_drop.id).all()
+        
+        should_logout = False
+        try:
+            if token_row.dbid == db_to_drop.id:
+                should_logout = True
+        except Exception as e:
+            logging.error(f"Error checking token row dbid: {e}")
+        try:
+            for table in tables:
+                actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                drop_query = text(f"DROP TABLE IF EXISTS \"{actual_table_name}\"")
+                connection.execute(drop_query)
+                connection.commit()
+                
+                db.session.delete(table)
+            db.session.delete(db_to_drop)
+            db.session.commit()
+
+            return jsonify({"success": True, "logout": should_logout, "message": "Database dropped successfully"}), 200
+        except Exception as e:
+            logging.error(f"Error dropping database: {e}")
+            return jsonify({"error": "Failed to drop database"}), 500
+    
+
+
 
 
 @sdk.route('/cli/slackauth', methods=['GET'])
