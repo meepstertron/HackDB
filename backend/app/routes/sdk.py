@@ -447,7 +447,7 @@ def cli_databases():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    databases = db.session.query(Databases).filter(Databases.user_id == user.id).all()
+    databases = db.session.query(Databases).filter(Databases.owner == user.id).all()
     return jsonify({"databases": [db.name for db in databases]}), 200
 
 
