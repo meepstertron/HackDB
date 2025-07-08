@@ -375,11 +375,15 @@ def cli_credits():
             return jsonify({"error": "Invalid token"}), 401
     if method == 'hexagonical_auth':
         return jsonify({"error": "Hexagonical Auth not implemented yet"}), 501
-    
-    user = db.session.query(Users).filter(Users.id == token_row.userid if method == 'sdk_token' else user_id).first()
+
+    if method == 'sdk_token':
+        user_id_to_query = token_row.userid
+    else:
+        user_id_to_query = user_id
+
+    user = db.session.query(Users).filter(Users.id == user_id_to_query).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    
     
     return jsonify({
         "user_id": user.id,
@@ -429,7 +433,6 @@ def cli_slack_auth():
     if not client_id:
         return jsonify({"error": "Server Config error"}), 500
     
-    
     oauth_scopes = [
         "identity.basic",
         "identity.email",
@@ -449,6 +452,6 @@ def poll_cli_login():
         return {"instanceid": instance_id, "token": jwt_token, "status": "verified", "slack_id": cli_state.slack_user_id, "user_id": str(cli_state.author_id)}, 200
     else:
         return {"instanceid": instance_id, "status": "pending"}, 202
-    
-    
+
+
 
