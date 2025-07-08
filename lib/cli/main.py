@@ -38,7 +38,7 @@ else:
 if config.get("instanceid") is None:
     config["instanceid"] = str(uuid.uuid4())
 if config.get("api_url") is None:
-    config["api_url"] = "https://condor-willing-buck.ngrok-free.app/api/sdk/v1"
+    config["api_url"] = "https://hackdb.hexagonical.ch/api/sdk/v1"
     print(f"{color.YELLOW}No API URL found in config, using default: {config['api_url']} set your own using 'hackdb config url'{color.END}")
     
 with open(config_path, "w") as f:
@@ -142,14 +142,18 @@ def login(args):
         
         
         result = requests.get(config['api_url']+"/cli/slackauthresult", params={"instanceid": config["instanceid"]})
-        if result.json().get("token") is not None:
+        try:
+            result_json = result.json()
+        except Exception:
+            result_json = {}
+        if result_json.get("token") is not None:
             print(f"{color.GREEN}There was a record already associated with this account. Use?{color.END}")
             answer = input("(y/n): ").strip().lower()
             if answer == 'y':
                 config['method'] = "slack_oauth"
-                config['token'] = result.json()['token']
-                config['slack_user_id'] = result.json()['slack_id']
-                config['user_id'] = result.json()['user_id']
+                config['token'] = result_json['token']
+                config['slack_user_id'] = result_json['slack_id']
+                config['user_id'] = result_json['user_id']
                 print(f"{color.GREEN}Success! :){color.END}")
                 with open(config_path, "w") as f:
                     json.dump(config, f, indent=4)
@@ -263,7 +267,11 @@ def configure(args):
         config['api_url'] = new_url
         print(f"API URL updated to: {new_url}")
     elif args.option == 'logout':
+        olduuid = config.get("instanceid")
+        oldurl = config.get("api_url")
         config.clear()
+        config["instanceid"] = olduuid
+        config["api_url"] = oldurl
         print("Logged out successfully. Configuration cleared.")
     else:
         print("Invalid option. Use 'url' to set API URL or 'logout' to clear configuration.")

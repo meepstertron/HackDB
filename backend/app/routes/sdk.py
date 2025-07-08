@@ -50,7 +50,7 @@ def get_tables():
     try:
         helpers.Credits.charge_credits(
             user_id=user.id,
-            credits_needed=0.1,
+            credits_needed=0.02,
             action="get_tables"
         )
         
@@ -81,8 +81,14 @@ def get_credits():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    
-    
+    credits = user.weekly_allowance+ user.purchased_credits - helpers.Credits.get_used_credits_this_week(user.id)
+    if credits < 0:
+        credits = 0
+        
+    return jsonify({
+        "credits": credits
+    }), 200
+
 
 @sdk.route('/tables/<table_name>/findmany', methods=['GET'])
 def get_table_data(table_name):
@@ -123,20 +129,6 @@ def get_table_data(table_name):
     user = db.session.query(Users).filter(Users.id == token_row.userid).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    try:
-        helpers.Credits.charge_credits(
-            user_id=user.id,
-            credits_needed=0.2,
-            action="get_table_data"
-        )
-        
-    except ValueError:
-        logging.error("Insufficient credits to charge this action")
-        return jsonify({"error": "Insufficient credits"}), 402
-    except Exception as e:
-        
-        logging.error(f"Error logging credits: {e}")
-        return jsonify({"error": "Failed to bill credits"}), 500
 
 
     userdb_engine = db.get_engine(bind='userdb')
@@ -374,7 +366,7 @@ def cli_credits():
             user_id = payload.get('user_id')
             if not user_id:
                 return jsonify({"error": "Invalid token"}), 401
-            user = db.session.query(Users).filter(Users.slack_user_id == user_id).first()
+            user = db.session.query(Users).filter(Users.id == user_id).first()
             if not user:
                 return jsonify({"error": "User not found"}), 404
         except jwt.ExpiredSignatureError:
