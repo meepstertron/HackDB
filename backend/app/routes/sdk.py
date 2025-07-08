@@ -407,14 +407,16 @@ def cli_databases():
     
     if not method or method not in ['sdk_token', 'slack_oauth', 'hexagonical_auth']:
         return jsonify({"error": "Invalid or missing method"}), 400
-    
+
+    user_id = None
+
     if method == 'sdk_token':
         if not token or not re.match(r"^Bearer hkdb_tkn_[a-f0-9\-]{36}$", token):
             return jsonify({"error": "Invalid or missing token"}), 401
         token_row = db.session.query(Tokens).filter(Tokens.key == token.split(" ")[1]).first()
         if not token_row:
             return jsonify({"error": "Token not found"}), 404
-    
+
     if method == 'slack_oauth':
         try:
             if not token or not re.match(r"^Bearer [a-zA-Z0-9\-_.]+$", token):

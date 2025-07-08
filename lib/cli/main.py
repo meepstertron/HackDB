@@ -336,7 +336,7 @@ def drop(args):
         print("Operation cancelled.")
         return
     
-    response = requests.post(config['api_url']+"/cli/drop", headers={
+    response = requests.post(config['api_url']+"/cli/databases/drop?method="+config['method'], headers={
         "Authorization": f"Bearer {config['token']}"
     }, json={
         "database_id": args.database
@@ -346,7 +346,11 @@ def drop(args):
         print("Server error. Please try again later.")
         return
     if response.status_code != 200:
-        print(f"{color.RED}Error dropping database: {response.json().get('error', 'Unknown error')}{color.END}")
+        try:
+            error_msg = response.json().get('error', 'Unknown error')
+        except Exception:
+            error_msg = response.text.strip() or 'Unknown error'
+        print(f"{color.RED}Error dropping database: {error_msg}{color.END}")
         return
     print(f"{color.GREEN}Database dropped successfully.{color.END}")
     if response.json().get("logout"):
