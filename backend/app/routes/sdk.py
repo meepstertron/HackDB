@@ -452,10 +452,10 @@ def cli_databases():
     databases = db.session.query(Databases).filter(Databases.owner == user.id).all()
     payload = []
     
-    for db in databases:
+    for db1 in databases:
         db_info = {
-            "id": str(db.id),
-            "name": db.name
+            "id": str(db1.id),
+            "name": db1.name
         }
         payload.append(db_info)
 
