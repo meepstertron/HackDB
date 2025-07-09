@@ -135,7 +135,8 @@ def get_table_data(table_name):
     userdb_engine = db.get_engine(bind='userdb')
     with userdb_engine.connect() as connection:
         if lookup_string is not None:
-            query = text(f"SELECT * FROM \"{actual_table_name}\" LIMIT {limit} " + helpers.whereObjectParser(where=lookup_string))
+            where_clause = helpers.whereObjectParser(where=lookup_string)
+            query = text(f"SELECT * FROM \"{actual_table_name}\" {where_clause} LIMIT {limit}")
             result = connection.execute(query).fetchall()
             
         else:
