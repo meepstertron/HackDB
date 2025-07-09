@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HackDB Test</title>
+</head>
+<body>
+    <h1>HackDB Library Test</h1>
+    <script src="hackdb.js"></script>
+    <script>
+    (async () => {
+        const db = new HackDB("hkdb_tkn_ceea2285-9144-4c38-9b82-705828cf8252");
+        const ok = await db.connect();
+        if (ok) {
+            document.body.innerHTML += "<p>Connected to HackDB!</p>";
+        } else {
+            document.body.innerHTML += "<p>Failed to connect to HackDB.</p>";
+        }
+
+        db.get_credits().then(credits => {
+            document.body.innerHTML += `<p>Credits: ${credits}</p>`;
+        }).catch(err => {
+            document.body.innerHTML += `<p>Error fetching credits: ${err.message}</p>`;
+        });
+
+        db.get_tables().then(tables => {
+            document.body.innerHTML += `<p>Tables: ${JSON.stringify(tables)}</p>`;
+        }).catch(err => {
+            document.body.innerHTML += `<p>Error fetching tables: ${err.message}</p>`;
+        });
+
+        const randomName = Math.random().toString(36).substring(2, 9);
+        db.test.create({"name": randomName}).then(response => {
+            document.body.innerHTML += `<p>Created table with response: ${JSON.stringify(response)}</p>`;
+        }).catch(err => {
+            document.body.innerHTML += `<p>Error creating table: ${err.message}</p>`;
+        });
+
+        db.test.count().then(count => {
+            document.body.innerHTML += `<p>Table count: ${JSON.stringify(count)}</p>`;
+        }).catch(err => {
+            document.body.innerHTML += `<p>Error counting tables: ${err.message}</p>`;
+        });
+
+        db.test.find_many({"id": {"eq": 1}}).then(results => {
+            document.body.innerHTML += `<p>Find many results: ${JSON.stringify(results)}</p>`;
+        }).catch(err => {
+            document.body.innerHTML += `<p>Error finding many: ${err.message}</p>`;
+        });
+
+    })();
+    </script>
+</body>
+</html>

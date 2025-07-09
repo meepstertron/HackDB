@@ -97,6 +97,7 @@ def get_table_data(table_name):
     lookup_string_param = params.get('lookup_string', None)
     lookup_string = None
     limit_param = params.get('limit', None)
+    limit = 50
     if limit_param is not None:
         try:
             limit = int(limit_param)
@@ -544,6 +545,77 @@ def cli_drop_database():
             return jsonify({"error": "Failed to drop database"}), 500
     
 
+
+@sdk.route('/cli/databases/create', methods=['POST'])
+def cli_create_database():
+    token = request.headers.get('Authorization')
+    method = request.args.get('method', None)
+    
+    if not method or method not in ['sdk_token', 'slack_oauth', 'hexagonical_auth']:
+        return jsonify({"error": "Invalid or missing method"}), 400
+    
+    if method == 'sdk_token':
+        return jsonify({"error": "Insufficient permission level"}), 501
+    
+    if method == 'slack_oauth':
+        try:
+            if not token or not re.match(r"^Bearer [a-zA-Z0-9\-_.]+$", token):
+                return jsonify({"error": "Invalid or missing token"}), 401
+            try:
+                payload = jwt.decode(token.split(" ")[1], signing_secret, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return jsonify({"error": "Token has expired"}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({"error": "Invalid token"}), 401
+            user_id = payload.get('user_id')
+            if not user_id:
+                return jsonify({"error": "Invalid token"}), 401
+            user = db.session.query(Users).filter(Users.id == user_id).first()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+    if method == 'hexagonical_auth':
+        return jsonify({"error": "Hexagonical Auth not implemented yet"}), 501
+
+
+    user_id_to_query = user_id
+
+    user = db.session.query(Users).filter(Users.id == user_id_to_query).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    userdb_engine = db.get_engine(bind='userdb')
+    with userdb_engine.connect() as connection:
+        db_id = request.json.get('database_id', None)
+        if not db_id:
+            return jsonify({"error": "No database id provided"}), 400
+
+        db_to_drop = db.session.query(Databases).filter(Databases.id == db_id, Databases.owner == user.id).first()
+        if not db_to_drop:
+            return jsonify({"error": "Database not found"}), 404
+        
+        tables = db.session.query(Usertables).filter(Usertables.db == db_to_drop.id).all()
+        
+        should_logout = False
+
+        try:
+            for table in tables:
+                actual_table_name = f"{table.name}_{str(table.id).replace('-', '_')}"
+                drop_query = text(f"DROP TABLE IF EXISTS \"{actual_table_name}\"")
+                connection.execute(drop_query)
+                connection.commit()
+                
+                db.session.delete(table)
+            db.session.delete(db_to_drop)
+            db.session.commit()
+
+            return jsonify({"success": True, "logout": should_logout, "message": "Database dropped successfully"}), 200
+        except Exception as e:
+            logging.error(f"Error dropping database: {e}")
+            return jsonify({"error": "Failed to drop database"}), 500
 
 
 
