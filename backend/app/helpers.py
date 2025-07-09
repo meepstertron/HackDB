@@ -80,7 +80,7 @@ def whereObjectParser(where: dict):
         
         if isinstance(operation, dict):
             for operation, value in operation.items():
-                if operation == 'equals':
+                if operation in ['eq', 'equals', 'equal']:
                     if value is None:
                         where_list.append(f"{column} IS NULL")
                     else:
