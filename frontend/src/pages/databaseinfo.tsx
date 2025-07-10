@@ -21,7 +21,7 @@ function DBInfo() {
                 prop.name === "Database Name" ? { ...prop, value } : prop
             ));
         } },
-        { name: "Database Size", value: "Loading...", editable: false, onEdit: () => {} },
+
         { name: "Created At", value: "Loading...", editable: false, onEdit: () => {} },
         { name: "Last Updated", value: "Loading...", editable: false, onEdit: () => {} },
         { name: "number of Tables", value: "Loading...", editable: false, onEdit: () => {} },
@@ -52,9 +52,8 @@ function DBInfo() {
                                 setTitle("HackDB - " + newValue); // Use newValue here
                             } 
                         },
-                        { name: "Database Size", value: dbInfo.size ?? "N/A", editable: false, onEdit: () => {} }, 
                         { name: "Created At", value: dbInfo.created_at, editable: false, onEdit: () => {} },
-                        { name: "Last Updated", value: dbInfo.updated_at ?? "N/A", editable: false, onEdit: () => {} },
+
                         { name: "number of Tables", value: dbInfo.num_tables, editable: false, onEdit: () => {} },
                         { name: "Quota Usage / Week", value: dbInfo.quota_usage ?? "N/A", editable: false, onEdit: () => {} }
                     ]);
@@ -111,9 +110,7 @@ function DBInfo() {
                             File Size
                         </td>
                         
-                        <td className="border border-gray-400 p-1">
-                            Last Modified
-                        </td>
+
 
                     </tr>
                 
@@ -132,7 +129,7 @@ function DBInfo() {
                                 <td className="border border-gray-400 p-1">{table.name}</td>
                                 <td className="border border-gray-400 p-1">{table.rows}</td>
                                 <td className="border border-gray-400 p-1">{table.size}</td>
-                                <td className="border border-gray-400 p-1">{table.lastModified}</td>
+
                             </tr>))}
                         
 

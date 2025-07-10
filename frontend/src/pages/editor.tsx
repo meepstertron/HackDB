@@ -262,7 +262,7 @@ function TableEditor() {
                             <input type="checkbox" className="w-3 h-3" onChange={handleSelectAll} />
                         </th>
                         {structure.map((column, index) => (
-                            <th className="text-left border border-gray-300 p-1 hover:bg-gray-50 cursor-pointer" key={column.name || index}>
+                            <th className="text-left border  p-1 hover:bg-gray-50 cursor-pointer" key={column.name || index}>
                                 <Popover>
                                     <PopoverTrigger className="flex items-center w-full">
                                         {column.name} <span className="text-xs font-normal ml-2">{column.type}</span>
@@ -528,6 +528,8 @@ function TableEditor() {
                             </>
                             
                         ))}
+
+                        <td className="w-0 p-0 border-none" style={{ display: 'none' }}></td>
                         
                     </tr>
                 ))}

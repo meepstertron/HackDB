@@ -676,9 +676,9 @@ def tokens():
         data = request.get_json()
         if not data or 'token_id' not in data:
             return jsonify(message='Invalid request: "token_id" is required'), 400
-        
-        token_to_delete = db.session.query(Tokens).filter_by(id=data['token_id'], owner=user.id).first()
-        
+
+        token_to_delete = db.session.query(Tokens).filter_by(id=data['token_id'], userid=user.id).first()
+
         if not token_to_delete:
             return jsonify(message='Token not found'), 404
         

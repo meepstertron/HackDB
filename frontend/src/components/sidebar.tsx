@@ -148,9 +148,12 @@ function EditorSidebar() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-72" side="right">
-                                    <form onSubmit={(e) => {
+                                    <form onSubmit={async (e) => {
                                         e.preventDefault();
-                                        createTable((e.currentTarget.elements.namedItem("tableName") as HTMLInputElement).value, dbid || "")
+                                        const tableName = (e.currentTarget.elements.namedItem("tableName") as HTMLInputElement).value;
+                                        await createTable(tableName, dbid || "");
+                                        setRefreshKey(Date.now());
+                                        e.currentTarget.reset();
                                     }}>
                                         <span>New Table</span>
                                         <div className="flex flex-col gap-2 mt-2">
