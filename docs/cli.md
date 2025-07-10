@@ -40,8 +40,6 @@ pip install hackdb-cli
 - `hackdb table list -d <database name>`  
   List all tables in a database.
 
-- `hackdb table`  
-  (See `hackdb table --help` for more options.)
 
 ## Tips
 

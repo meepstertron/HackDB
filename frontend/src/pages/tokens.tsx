@@ -77,7 +77,15 @@ function TokenPage() {
                                 createToken(name, dbId).then((response) => {
 
                                     if (response && response.token) {
-                                        setTokens([...tokens, response.token]);
+                                        const newToken = {
+                                            id: response.token.id,
+                                            name: response.token.name,
+                                            database: response.token.database,
+                                            databaseid: response.token.dbid,
+                                            created_at: "Just now",
+                                            token: response.token.key
+                                        };
+                                        setTokens([...tokens, newToken]);
                                         toast.success("Token created successfully!");
                                         e.currentTarget.reset(); // Reset the form after successful creation
                                     } else {

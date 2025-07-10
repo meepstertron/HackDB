@@ -1,5 +1,4 @@
 import { toast } from "sonner";
-import { json } from "stream/consumers";
 
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -25,7 +24,9 @@ export function getMyself() {
                     slack_id: jsonData.slack_id || null
                 }
             } else {
+                toast.error("Failed to fetch user data")
                 throw new Error("Failed to fetch user data")
+                
             }
         })
 }
@@ -45,6 +46,7 @@ export function getUsersDatabases() {
         })
         .catch((error) => {
             console.error("Error fetching user data:", error)
+            toast.error("Error fetching user data") 
             return []
         });
 }
@@ -64,6 +66,7 @@ export function getDatabaseInfo(db_id: string) {
         })
         .catch((error) => {
             console.error("Error fetching database info:", error)
+            toast.error("Error fetching database info")
             return null
         });
 }
@@ -83,6 +86,7 @@ export function getDatabaseTables(db_id: string) {
         })
         .catch((error) => {
             console.error("Error fetching database info:", error)
+            toast.error("Error fetching databases")
             return null
         });
 }
@@ -102,6 +106,7 @@ export function getTableStructure(table_id: string, db_id: string) {
         })
         .catch((error) => {
             console.error("Error fetching database info:", error)
+            toast.error("Error fetching table structure")
             return null
         });
 }
@@ -126,6 +131,7 @@ export function getTableData(table_id: string, db_id: string, limit: number, off
         })
         .catch((error) => {
             console.error("Error fetching database info:", error)
+            toast.error("Error fetching database data")
             return null
         });
 }
@@ -146,16 +152,20 @@ export function getUserTokens() {
         })
         .catch((error) => {
             console.error("Error fetching user tokens:", error)
+            toast.error("Error fetching user tokens")
             return null
         });
 }
 
 
 export function revokeToken(token_id: string) {
-    return fetch(API_URL + "/userdbs/tokens?tokenid=" + token_id, {
+    return fetch(API_URL + "/userdbs/tokens", {
         method: "DELETE",
         credentials: "include",
-        body: JSON.stringify({ tokenid: token_id }),
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ token_id }), 
     })
         .then(async (response) => {
             if (response.status === 200) {
@@ -167,6 +177,7 @@ export function revokeToken(token_id: string) {
         })
         .catch((error) => {
             console.error("Error revoking user token:", error)
+            toast.error("Error revoking user token")
             return null
         });
 }
@@ -190,6 +201,7 @@ export function createToken(name: string, db_id: string) {
     })
     .catch((error) => {
         console.error("Error creating token:", error);
+        toast.error("Error creating token");
         return null;
     });
 }
@@ -214,6 +226,7 @@ export function commitChanges(changes: any[], db_id: string) {
         })
         .catch((error) => {
             console.error("Error committing changes:", error)
+            toast.error("Error committing changes")
             return null
         });
 }
@@ -237,6 +250,7 @@ export function createDatabase(name: string) {
         })
         .catch((error) => {
             console.error("Error creating database:", error)
+            toast.error("Error creating database")
             return null
         });
 }
@@ -267,6 +281,7 @@ export function tableAction(db_id: string, table_id: string, action: string, dat
         })
         .catch((error) => {
             console.error("Error performing table action:", error);
+            toast.error("Error performing table action");
             return null;
         });
 }
@@ -314,6 +329,7 @@ export function getQuotaPageData() {
     })
     .catch((error) => {
         console.error("Error fetching quota data:", error);
+        toast.error("Error fetching quota data");  
         return null;
     });
 }
