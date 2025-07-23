@@ -22,7 +22,7 @@ function Sidebar() {
     const navigate = useNavigate();
     const elements = [
         { name: "Databases", icon: <Database />, location: "/databases", active: true },
-        { name: "Workflows", icon: <Workflow />, location: "/workflows", active: false },
+        // { name: "Workflows", icon: <Workflow />, location: "/workflows", active: false },
         { name: "Quota", icon: <PercentDiamondIcon />, location: "/quota", active: true },
         { name: "Tokens", icon: <Hash />, location: "/tokens", active: true },
         { name: "Settings", icon: <Settings2 />, location: "/settings", active: true },

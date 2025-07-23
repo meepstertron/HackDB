@@ -68,3 +68,24 @@ jobs:
         kubectl rollout restart deployment/hackdb-backend
         kubectl rollout restart deployment/hackdb-worker
         kubectl rollout restart deployment/hackdb-redis
+
+    - name: Commit docs to repo
+      uses: actions/checkout@v4
+      with:
+        repository: hexagonicalhq/docs
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: docs-repo
+
+    - name: Copy docs to target repo
+      run: |
+        mkdir -p docs-repo/hackdb
+        cp -r ./docs/* docs-repo/hackdb/
+
+    - name: Commit and push changes
+      run: |
+        cd docs-repo
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+        git add .
+        git commit -m "Add HackDB docs"
+        git push

@@ -48,7 +48,7 @@ function TokenPage() {
     const handleRevoke = (id:string) => {
         // Remove the very sigma token from the list
         setTokens(tokens.filter(token => token.id !== id));
-        // uhhh no api route lol
+        
 
 
 

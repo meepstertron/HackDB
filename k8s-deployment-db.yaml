@@ -12,6 +12,8 @@ spec:
       labels:
         app: hackdb-db
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-2
       containers:
       - name: hackdb-db
         image: postgres:15
