@@ -73,7 +73,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: hexagonicalhq/docs
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PAT_HEXAGONICALHQ }}
         path: docs-repo
 
     - name: Copy docs to target repo
