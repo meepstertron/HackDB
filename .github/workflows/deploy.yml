@@ -80,6 +80,7 @@ jobs:
       run: |
         mkdir -p docs-repo/hackdb
         cp -r ./docs/* docs-repo/hackdb/
+        mv docs-repo/hackdb/index.md docs-repo/hackdb.md
 
     - name: Commit and push changes
       run: |

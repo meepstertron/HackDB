@@ -11,6 +11,8 @@ function SettingsPage() {
         .then((response) => {
             if (response.ok) {
                 console.log("User logged out");
+                
+                
             } else {
                 console.error("Logout failed");
             }
@@ -18,6 +20,7 @@ function SettingsPage() {
 
         // delete jwt cookie
         document.cookie = "jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax; Secure";
+        window.location.reload();
     };
 
     const handleDeleteAccount = () => {
@@ -37,8 +40,8 @@ function SettingsPage() {
     return ( 
         <>
             <h1>Settings</h1>
-            <Button onClick={handleLogout}>Log Out</Button>
-            <Button onClick={handleDeleteAccount}>Delete Account</Button>
+            <Button className="mr-2" onClick={handleLogout}>Log Out</Button>
+            <Button variant={"destructive"} onClick={handleDeleteAccount}>Delete Account</Button>
             <p>Deleting your account will delete all databases, tables, tokens, and other related data. this is permanent without confirmation!</p>
         </>
      );
